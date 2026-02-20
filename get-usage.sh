@@ -423,27 +423,36 @@ perform_export() {
                             echo ""
                         fi
 
-                        # Extract org slug from ORGANIZATION_NAME column (col 2 of usage CSV)
+                        # ── Prefix merged file and folder with org name ──────────────
                         ORG_SLUG=""
                         if [ -f "$MERGED_FILE" ]; then
+                            # Read ORGANIZATION_NAME from column 2 of first data row
                             RAW_ORG_NAME=$(awk -F',' 'NR==2{gsub(/"/, "", $2); print $2}' "$MERGED_FILE")
                             if [ -n "$RAW_ORG_NAME" ]; then
+                                # Sanitize: lowercase, spaces→hyphens, strip special chars
                                 ORG_SLUG=$(echo "$RAW_ORG_NAME" | tr '[:upper:]' '[:lower:]' | tr ' ' '-' | tr -cd '[:alnum:]-_')
                             fi
                         fi
 
-                        # Rename merged file to inclue org slug prefix
                         if [ -n "$ORG_SLUG" ]; then
+                            # Rename the merged CSV file
                             MERGED_DIR=$(dirname "$MERGED_FILE")
-                            MERGED_BASE=${basename "$MERGED_FILE"}
+                            MERGED_BASE=$(basename "$MERGED_FILE")
                             NEW_MERGED_FILE="$MERGED_DIR/${ORG_SLUG}-${MERGED_BASE}"
                             mv "$MERGED_FILE" "$NEW_MERGED_FILE"
                             MERGED_FILE="$NEW_MERGED_FILE"
-                            echo -e "${GREEN}Renamed to: $(basename "$MERGED_FILE")${NC}"
+                            echo -e "${GREEN}✓ Renamed to: $(basename "$MERGED_FILE")${NC}"
+
+                            # Rename the output folder too
+                            NEW_OUTPUT_DIR=$(dirname "$OUTPUT_DIR")/${ORG_SLUG}-$(basename "$OUTPUT_DIR")
+                            mv "$OUTPUT_DIR" "$NEW_OUTPUT_DIR"
+                            OUTPUT_DIR="$NEW_OUTPUT_DIR"
+                            MERGED_FILE="$OUTPUT_DIR/$(basename "$MERGED_FILE")"
+                            echo -e "${GREEN}✓ Folder renamed to: $(basename "$OUTPUT_DIR")${NC}"
                             echo ""
                         fi
 
-                        # Show preview of merged file
+                                                # Show preview of merged file
                         echo -e "${BLUE}Preview (first 10 lines of merged file):${NC}"
                         head -10 "$MERGED_FILE"
                         echo ""
