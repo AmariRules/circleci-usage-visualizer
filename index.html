@@ -1,6 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head><!-- visualizer-version: 2026-02-20 03:35:18 -->
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>CircleCI Usage Report with Resource Utilization Analysis</title>
@@ -67,7 +67,91 @@
           <h3 class="text-sm font-medium text-gray-500">Avg. Job Duration</h3>
           <p id="avg-duration" class="mt-1 text-2xl font-semibold text-gray-900">0s</p>
         </div>
+      
+      <!-- ⚡ GEN2 RESOURCE ANALYSIS SECTION ⚡ -->
+      <div id="gen2-analysis-section" class="hidden mb-8 bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 text-white" style="background:linear-gradient(135deg,#0d1b2a,#1a3a5c)">
+          <div class="flex items-start justify-between flex-wrap gap-2">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">⚡ Gen2 Resource Opportunities</h2>
+              <p class="text-sm mt-1" style="color:#90b8d4">
+                Jobs eligible to migrate from Gen1 (x86 Docker/Machine) to Gen2 (Arm Graviton).
+                Standard CircleCI pricing — verify against your plan.
+              </p>
+            </div>
+            <span class="text-xs px-2 py-1 rounded self-start mt-1 font-semibold whitespace-nowrap" style="background:#00b140;color:#fff">Arm = 40% cheaper/min</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+          <div class="px-5 py-4">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Gen1 Job Types Found</p>
+            <p id="g2-eligible" class="text-3xl font-bold text-gray-900">—</p>
+            <p class="text-xs text-gray-400 mt-1">Docker/Machine Linux with a Gen2 equivalent</p>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Potential Credit Savings</p>
+            <p id="g2-savings" class="text-3xl font-bold text-green-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">Scenario A: direct Arm swap, same runtime</p>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-1">Already on Gen2</p>
+            <p id="g2-already" class="text-3xl font-bold text-purple-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">Jobs already running Arm or newer resources</p>
+          </div>
+        </div>
+        <div class="border-t border-gray-200 px-6 pt-5 pb-6">
+          <h3 class="font-semibold text-gray-800 mb-1">💰 Scenario A — Credit Savings: Direct Gen2 Swap</h3>
+          <p class="text-xs text-gray-400 mb-4">
+            Same job, same runtime. Arm resources run at 40% lower credits/min. Red = current Gen1 &nbsp;·&nbsp; Green = projected Gen2.
+            <span class="text-amber-600 font-bold">~</span> = CPU count differs slightly between Gen1 and Gen2 equivalent.
+          </p>
+          <div style="position:relative;height:360px"><canvas id="g2-save-chart"></canvas></div>
+        </div>
+        <div class="border-t border-gray-200 px-6 pt-5 pb-6">
+          <h3 class="font-semibold text-gray-800 mb-1">⏱ Scenario B — Speed Upgrade: Upsize on Gen2 for CPU-Bound Jobs</h3>
+          <p class="text-xs text-gray-400 mb-4">
+            Only jobs with CPU &gt; 65% utilization. Estimated using Amdahl's Law (80% parallelism assumption, conservative).
+            High confidence = CPU &gt; 80%. Many of these also reduce total credits despite costing more per minute.
+          </p>
+          <div style="position:relative;height:300px"><canvas id="g2-speed-chart"></canvas></div>
+          <p id="g2-speed-empty" class="hidden text-center text-gray-400 py-8 text-sm">
+            No CPU-bound candidates — either no jobs exceed 65% CPU threshold or utilization data is unavailable.
+          </p>
+        </div>
+        <div class="border-t border-gray-100 overflow-hidden">
+          <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-700 text-sm">All Gen2 Migration Opportunities</h3>
+            <span class="text-xs text-gray-400">Top 50 by credit savings</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100 text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Job</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Project</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Current</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Gen2 Equiv</th>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Credits Used</th>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Est Savings</th>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Save %</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Speed Opp</th>
+                </tr>
+              </thead>
+              <tbody id="g2-table-body" class="bg-white divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-amber-50 border-t border-amber-200 px-6 py-4 rounded-b-xl">
+          <p class="text-xs text-amber-800">
+            <strong>⚠ Before migrating:</strong> Verify your Docker images support
+            <code>linux/arm64</code> (most public images do; custom images may not).
+            Test in a feature branch first. Speedup estimates are theoretical.
+            Jobs marked <strong>~</strong> use an approximate Gen2 equivalent with a slightly different CPU count.
+          </p>
+        </div>
       </div>
+      <!-- END GEN2 SECTION -->
+</div>
       
       <!-- NEW: Resource Utilization Insights -->
       <div class="mb-8 p-6 bg-white rounded-lg shadow" id="resource-utilization-section">
