@@ -40,6 +40,33 @@ Your file is named automatically using your org's name and the date range — no
 
 ---
 
+## 🔑 API Key Management
+
+Your CircleCI API key is stored securely in macOS Keychain — it is never written to disk as plaintext.
+
+**First run:** The script will prompt you to enter your key and save it automatically.
+
+**If your key has expired or you entered it incorrectly**, reset it with one command:
+
+```bash
+security delete-generic-password -s "circleci-usage-script" -a "api-key"
+```
+
+Then re-run `./get-usage.sh` — it will prompt for a fresh key and save it.
+
+**Where to get or create an API key:**
+1. Go to [https://app.circleci.com/settings/user/tokens](https://app.circleci.com/settings/user/tokens)
+2. Click **Create New Token**
+3. Give it a name (e.g. `Usage Export`)
+4. Copy the token — it starts with `CCIPAT_`
+
+**Signs your key needs replacing:**
+- The script returns `HTTP 401` — key is invalid or expired
+- The script returns `HTTP 403` — key doesn't have access to that org
+- The script says "API key doesn't match expected format" — you may have copied it incorrectly
+
+---
+
 ## ✨ Features
 
 | Feature | Details |

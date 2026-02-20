@@ -261,10 +261,18 @@ perform_export() {
         # Check if it's an auth error
         if [ "$HTTP_STATUS" = "401" ] || [ "$HTTP_STATUS" = "403" ]; then
             echo ""
-            echo -e "${YELLOW}⚠ Authentication failed. The saved API key may be invalid.${NC}"
-            read -p "Would you like to enter a new API key? (y/n) " -n 1 -r
+            echo -e "${YELLOW}⚠ Authentication failed (HTTP $HTTP_STATUS).${NC}"
+            echo "  Your saved API key may be expired or invalid."
+            echo ""
+            echo -e "${CYAN}  To reset your key, run:${NC}"
+            echo "  security delete-generic-password -s "circleci-usage-script" -a "api-key""
+            echo ""
+            read -p "  Reset key and enter a new one now? (y/n) " -n 1 -r
             echo
             if [[ $REPLY =~ ^[Yy]$ ]]; then
+                security delete-generic-password -s "circleci-usage-script" -a "api-key" 2>/dev/null || true
+                echo -e "  ${GREEN}✓ Old key removed from Keychain${NC}"
+                echo ""
                 API_KEY=$(prompt_for_api_key)
                 return 2  # Signal to retry
             fi
