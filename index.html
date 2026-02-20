@@ -264,6 +264,404 @@
     // Resource utilization thresholds
     const UNDERUTILIZATION_THRESHOLD = 40;
     const OVERPROVISIONING_THRESHOLD = 80;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GEN2 RESOURCE ANALYSIS — Credit savings + speed opportunity calculator
+    // Credit rates: standard CircleCI pricing. Verify against your plan.
+    // Math verified: direct savings = 40% exact; Amdahl estimates conservative.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const GEN1_RESOURCES = {
+      'docker:small':    { cpm:5,   cpu:1,  ram:2   },
+      'docker:medium':   { cpm:10,  cpu:2,  ram:4   },
+      'docker:medium+':  { cpm:15,  cpu:3,  ram:6   },
+      'docker:large':    { cpm:20,  cpu:4,  ram:8   },
+      'docker:xlarge':   { cpm:40,  cpu:8,  ram:16  },
+      'docker:2xlarge':  { cpm:80,  cpu:16, ram:32  },
+      'docker:2xlarge+': { cpm:100, cpu:20, ram:40  },
+      'machine:medium':  { cpm:10,  cpu:2,  ram:7.5 },
+      'machine:large':   { cpm:20,  cpu:4,  ram:15  },
+      'machine:xlarge':  { cpm:40,  cpu:8,  ram:31  },
+      'machine:2xlarge': { cpm:80,  cpu:16, ram:63  },
+    };
+
+    const GEN2_RESOURCES = {
+      // Arm Graviton (linux/arm64) — 40% cheaper per minute than x86 equivalent
+      'arm.medium':  { cpm:6,  cpu:2,  ram:8  },
+      'arm.large':   { cpm:12, cpu:4,  ram:16 },
+      'arm.xlarge':  { cpm:24, cpu:8,  ram:32 },
+      'arm.2xlarge': { cpm:48, cpu:16, ram:64 },
+    };
+
+    // Gen1 resource class → direct Gen2 Arm equivalent
+    // Mappings marked ~ have different CPU counts (flagged in UI)
+    const GEN1_TO_GEN2 = {
+      'medium':   { arm: 'arm.medium',  approx: false }, // 2→2 CPU, 10→6 cpm
+      'large':    { arm: 'arm.large',   approx: false }, // 4→4 CPU, 20→12 cpm
+      'xlarge':   { arm: 'arm.xlarge',  approx: false }, // 8→8 CPU, 40→24 cpm
+      '2xlarge':  { arm: 'arm.2xlarge', approx: false }, // 16→16 CPU, 80→48 cpm
+      'medium+':  { arm: 'arm.medium',  approx: true  }, // 3→2 CPU (~), 15→6 cpm
+      '2xlarge+': { arm: 'arm.2xlarge', approx: true  }, // 20→16 CPU (~), 100→48 cpm
+    };
+
+    const ARM_CLASSES_ORDERED = ['arm.medium','arm.large','arm.xlarge','arm.2xlarge'];
+
+    let gen2SavingsChart = null;
+    let gen2SpeedChart   = null;
+
+    // ── isGen2Resource ────────────────────────────────────────────────────────
+    function isGen2Resource(executor, resourceClass) {
+      const exec = (executor || '').toLowerCase();
+      const rc   = (resourceClass || '').toLowerCase();
+      return exec === 'arm' || rc.startsWith('arm.') || rc.includes('.gen2') ||
+             rc.includes('m1') || rc.includes('m2') || rc.includes('m-series');
+    }
+
+    // ── analyzeGen2Opportunities ──────────────────────────────────────────────
+    // Returns { opportunities[], already_gen2_count, already_gen2_credits }
+    // Scenario A: direct Gen2 swap — pure math, 40% credit reduction, same runtime
+    // Scenario B: upsize on Gen2 — Amdahl's Law speedup for CPU-bound jobs
+    function analyzeGen2Opportunities(data) {
+      const groups = {};
+      let alreadyGen2Count = 0;
+      let alreadyGen2Credits = 0;
+
+      data.forEach(function(job) {
+        const executor = (job.EXECUTOR || '').toLowerCase().trim();
+        const rc       = (job.RESOURCE_CLASS || '').toLowerCase().trim();
+
+        if (isGen2Resource(executor, rc)) {
+          alreadyGen2Count++;
+          alreadyGen2Credits += (job.TOTAL_CREDITS || 0);
+          return;
+        }
+
+        // Only Docker and Machine Linux
+        if (executor && executor !== 'docker' && executor !== 'machine') return;
+        if (!GEN1_TO_GEN2[rc]) return;
+
+        const key = (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') +
+                    '||' + rc + '||' + executor;
+
+        if (!groups[key]) {
+          groups[key] = {
+            project: job.PROJECT_NAME || 'unknown',
+            job_name: job.JOB_NAME    || 'unknown',
+            resource_class: rc,
+            executor: executor,
+            total_credits: 0, total_runs: 0, total_seconds: 0,
+            cpu_vals: [], ram_vals: [],
+          };
+        }
+        const g = groups[key];
+        g.total_credits += (job.TOTAL_CREDITS    || 0);
+        g.total_runs    += 1;
+        g.total_seconds += (job.JOB_RUN_SECONDS  || 0);
+        const cpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
+        const ram = parseFloat(job.MEDIAN_RAM_UTILIZATION_PCT);
+        if (!isNaN(cpu)) g.cpu_vals.push(cpu);
+        if (!isNaN(ram)) g.ram_vals.push(ram);
+      });
+
+      const opps = [];
+
+      Object.values(groups).forEach(function(g) {
+        const mapping  = GEN1_TO_GEN2[g.resource_class];
+        const gen2Info = GEN2_RESOURCES[mapping.arm];
+
+        // Determine Gen1 CPM — try executor-specific first
+        const g1key = g.executor
+          ? (g.executor + ':' + g.resource_class)
+          : ('docker:'    + g.resource_class);
+        const gen1Info = GEN1_RESOURCES[g1key] || GEN1_RESOURCES['docker:' + g.resource_class];
+        if (!gen1Info || !gen2Info) return;
+
+        const avg_cpu = g.cpu_vals.length > 0 ? _.mean(g.cpu_vals) : null;
+        const avg_ram = g.ram_vals.length > 0 ? _.mean(g.ram_vals) : null;
+        const avg_sec = g.total_runs > 0 ? g.total_seconds / g.total_runs : 0;
+
+        // ── Scenario A: Direct Gen2 equivalent ─────────────────────────────
+        // Formula: gen2_credits = total_credits * (gen2_cpm / gen1_cpm)
+        // Savings = total_credits * (1 - gen2_cpm / gen1_cpm)
+        // For standard mappings this is always exactly 40%
+        const savingsPct    = (gen1Info.cpm - gen2Info.cpm) / gen1Info.cpm;
+        const savingsCredits = Math.round(g.total_credits * savingsPct);
+        const projectedCredits = Math.round(g.total_credits - savingsCredits);
+
+        // ── Scenario B: Upsize Gen2 for CPU-bound jobs ──────────────────────
+        // Only when: CPU util > 65%, job > 30s avg, larger Arm class available
+        // Amdahl: speedup = 1 / (1 - P + P/N)
+        //   P = conservative parallelizable fraction = cpu_util/100 * 0.80
+        //   N = new_cpu_count / old_cpu_count (Gen1 baseline)
+        let speedOpp = null;
+        if (avg_cpu !== null && avg_cpu > 65 && avg_sec > 30 && gen2Info.cpu < 16) {
+          const curIdx = ARM_CLASSES_ORDERED.indexOf(mapping.arm);
+          if (curIdx >= 0 && curIdx < ARM_CLASSES_ORDERED.length - 1) {
+            const upClass  = ARM_CLASSES_ORDERED[curIdx + 1];
+            const upInfo   = GEN2_RESOURCES[upClass];
+
+            const P        = Math.min((avg_cpu / 100) * 0.80, 0.88);
+            const N        = upInfo.cpu / gen1Info.cpu;
+            const speedup  = 1 / (1 - P + P / N);
+            const newSec   = avg_sec / speedup;
+
+            const oldCPR   = (avg_sec  / 60) * gen1Info.cpm;
+            const newCPR   = (newSec   / 60) * upInfo.cpm;
+            const creditDelta = Math.round((newCPR - oldCPR) * g.total_runs);
+            const timeSaved   = Math.round((avg_sec - newSec) * g.total_runs);
+
+            speedOpp = {
+              arm_class:        upClass,
+              new_cpm:          upInfo.cpm,
+              speedup_x:        parseFloat(speedup.toFixed(2)),
+              pct_faster:       Math.round((1 - 1 / speedup) * 100),
+              credit_delta:     creditDelta,       // negative = saves credits too
+              total_time_saved: timeSaved,         // seconds across all runs
+              confidence:       avg_cpu > 80 ? 'high' : 'medium',
+            };
+          }
+        }
+
+        opps.push({
+          project:           g.project,
+          job_name:          g.job_name,
+          resource_class:    g.resource_class,
+          executor:          g.executor,
+          gen1_cpm:          gen1Info.cpm,
+          gen1_cpu:          gen1Info.cpu,
+          total_credits:     Math.round(g.total_credits),
+          total_runs:        g.total_runs,
+          avg_sec:           Math.round(avg_sec),
+          avg_cpu:           avg_cpu !== null ? parseFloat(avg_cpu.toFixed(1)) : null,
+          avg_ram:           avg_ram !== null ? parseFloat(avg_ram.toFixed(1)) : null,
+          gen2_class:        mapping.arm,
+          gen2_cpm:          gen2Info.cpm,
+          gen2_cpu:          gen2Info.cpu,
+          is_approx:         mapping.approx,
+          savings_pct:       Math.round(savingsPct * 100),
+          savings_credits:   savingsCredits,
+          projected_credits: projectedCredits,
+          speed_opp:         speedOpp,
+        });
+      });
+
+      opps.sort(function(a,b){ return b.savings_credits - a.savings_credits; });
+
+      return {
+        opportunities:        opps,
+        already_gen2_count:   alreadyGen2Count,
+        already_gen2_credits: Math.round(alreadyGen2Credits),
+      };
+    }
+
+    // ── updateGen2Analysis ────────────────────────────────────────────────────
+    function updateGen2Analysis() {
+      const result = analyzeGen2Opportunities(parsedData);
+      const opps   = result.opportunities;
+
+      // Summary cards
+      const totalSavings = opps.reduce(function(s,o){ return s + o.savings_credits; }, 0);
+      document.getElementById('gen2-eligible-count').textContent =
+        opps.length.toLocaleString() + ' job types';
+      document.getElementById('gen2-total-savings').textContent =
+        totalSavings.toLocaleString() + ' credits';
+      document.getElementById('gen2-already-count').textContent =
+        result.already_gen2_count.toLocaleString();
+
+      // Render charts
+      renderGen2SavingsChart(opps.slice(0, 12));
+      renderGen2SpeedChart(opps.filter(function(o){ return o.speed_opp !== null; }).slice(0, 12));
+
+      // Render table
+      renderGen2Table(opps.slice(0, 50));
+
+      // Show section
+      const section = document.getElementById('gen2-analysis-section');
+      if (section) section.classList.remove('hidden');
+    }
+
+    // ── renderGen2SavingsChart ────────────────────────────────────────────────
+    function renderGen2SavingsChart(opps) {
+      const canvas = document.getElementById('gen2-savings-chart');
+      if (!canvas || opps.length === 0) return;
+      if (gen2SavingsChart) { gen2SavingsChart.destroy(); gen2SavingsChart = null; }
+
+      const labels  = opps.map(function(o) {
+        const approx = o.is_approx ? ' ~' : '';
+        return o.job_name.length > 28 ? o.job_name.slice(0,26) + '..' + approx : o.job_name + approx;
+      });
+
+      gen2SavingsChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Current Credits (Gen1)',
+              data: opps.map(function(o){ return o.total_credits; }),
+              backgroundColor: 'rgba(239,68,68,0.6)',
+              borderColor:     'rgba(239,68,68,1)',
+              borderWidth: 1,
+            },
+            {
+              label: 'Projected Credits (Gen2 Arm)',
+              data: opps.map(function(o){ return o.projected_credits; }),
+              backgroundColor: 'rgba(34,197,94,0.65)',
+              borderColor:     'rgba(34,197,94,1)',
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(ctx) {
+                  const o = opps[ctx.dataIndex];
+                  if (ctx.datasetIndex === 1) {
+                    return '  Saves ~' + o.savings_credits.toLocaleString() +
+                           ' credits (' + o.savings_pct + '%)' +
+                           (o.is_approx ? '  [~CPU count differs]' : '');
+                  }
+                  return '  ' + o.total_runs + ' runs · ' + o.resource_class + ' → ' + o.gen2_class;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Credits' },
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    // ── renderGen2SpeedChart ──────────────────────────────────────────────────
+    function renderGen2SpeedChart(opps) {
+      const canvas = document.getElementById('gen2-speed-chart');
+      const empty  = document.getElementById('gen2-speed-empty');
+
+      if (gen2SpeedChart) { gen2SpeedChart.destroy(); gen2SpeedChart = null; }
+
+      if (!opps || opps.length === 0) {
+        if (canvas) canvas.classList.add('hidden');
+        if (empty)  empty.classList.remove('hidden');
+        return;
+      }
+      if (canvas) canvas.classList.remove('hidden');
+      if (empty)  empty.classList.add('hidden');
+
+      const labels = opps.map(function(o) {
+        return o.job_name.length > 28 ? o.job_name.slice(0,26) + '..' : o.job_name;
+      });
+
+      const pctFaster = opps.map(function(o){ return o.speed_opp.pct_faster; });
+      const colors    = opps.map(function(o) {
+        return o.speed_opp.confidence === 'high'
+          ? 'rgba(99,102,241,0.75)'
+          : 'rgba(139,92,246,0.5)';
+      });
+
+      gen2SpeedChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '% Faster on Arm (estimated)',
+            data: pctFaster,
+            backgroundColor: colors,
+            borderColor: colors.map(function(c){ return c.replace('0.7','1').replace('0.5','1'); }),
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(ctx) {
+                  const o = opps[ctx.dataIndex];
+                  const sp = o.speed_opp;
+                  const min = Math.round(sp.total_time_saved / 60);
+                  const cred = sp.credit_delta < 0
+                    ? '+ saves ' + Math.abs(sp.credit_delta).toLocaleString() + ' credits'
+                    : '+ costs ' + sp.credit_delta.toLocaleString() + ' more credits';
+                  return [
+                    '  ' + sp.speedup_x + 'x speedup · ' + sp.confidence + ' confidence',
+                    '  ' + min.toLocaleString() + ' min saved (all runs)',
+                    '  ' + cred,
+                    '  ' + o.resource_class + ' → ' + sp.arm_class,
+                    '  CPU util: ' + (o.avg_cpu !== null ? o.avg_cpu + '%' : 'n/a'),
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: '% Faster (Amdahl estimate, conservative)' },
+              beginAtZero: true,
+              max: 60,
+            },
+          },
+        },
+      });
+    }
+
+    // ── renderGen2Table ───────────────────────────────────────────────────────
+    function renderGen2Table(opps) {
+      const body = document.getElementById('gen2-table-body');
+      if (!body) return;
+      body.innerHTML = '';
+      if (opps.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 py-6 text-sm">' +
+          'No Gen1 Linux jobs found with a Gen2 equivalent. ' +
+          'Jobs may already be on Arm, or executor data may be unavailable.</td></tr>';
+        return;
+      }
+      opps.forEach(function(o) {
+        const approxFlag = o.is_approx
+          ? '<span class="text-amber-600 ml-1" title="CPU count differs between Gen1 and Gen2 equivalent">~</span>'
+          : '';
+        const speedCell = o.speed_opp
+          ? '<span class="text-purple-600 font-medium">' + o.speed_opp.pct_faster + '% faster</span>' +
+            '<span class="text-xs text-gray-400 ml-1">(' + o.speed_opp.confidence + ')</span>'
+          : '<span class="text-gray-300">—</span>';
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 text-sm';
+        row.innerHTML =
+          '<td class="px-4 py-3 font-medium text-gray-800">' + escapeHtml(o.job_name) + '</td>' +
+          '<td class="px-4 py-3 text-gray-500 text-xs">' + escapeHtml(o.project) + '</td>' +
+          '<td class="px-4 py-3"><span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">' +
+            o.resource_class + '</span>' +
+            '<span class="text-xs text-gray-400 ml-1">' + o.gen1_cpm + 'c/min</span></td>' +
+          '<td class="px-4 py-3"><span class="font-mono text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">' +
+            o.gen2_class + approxFlag + '</span>' +
+            '<span class="text-xs text-gray-400 ml-1">' + o.gen2_cpm + 'c/min</span></td>' +
+          '<td class="px-4 py-3 text-right text-gray-700">' + o.total_credits.toLocaleString() + '</td>' +
+          '<td class="px-4 py-3 text-right font-semibold text-green-600">' +
+            o.savings_credits.toLocaleString() + '</td>' +
+          '<td class="px-4 py-3 text-right text-green-600">' + o.savings_pct + '%</td>' +
+          '<td class="px-4 py-3">' + speedCell + '</td>';
+        body.appendChild(row);
+      });
+    }
+
+    // ── helper ────────────────────────────────────────────────────────────────
+    function escapeHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    
     
     // Default branch name - change this as needed
     const defaultBranchName = "main";
