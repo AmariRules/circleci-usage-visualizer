@@ -4,20 +4,47 @@ A **zero-dependency, single-file HTML dashboard** for analyzing CircleCI usage d
 
 ---
 
-## 📥 Getting Your Data — `get-usage.sh`
+## 📥 Download & Run `get-usage.sh`
 
-The fastest way to get your usage data is the included shell script. It handles everything: authentication, polling, download, decompression, and merging — and automatically names the output file using your org slug and date range.
+**[⬇️ Download get-usage.sh](https://raw.githubusercontent.com/AmariRules/circleci-usage-visualizer/main/get-usage.sh)**
+
+> Right-click the link above and choose **Save Link As** to download the file.
+
+This script handles everything: it authenticates with CircleCI, pulls your usage data, decompresses it, merges it, and saves it as a clean CSV named with your org and date range — ready to drop straight into the visualizer.
+
+---
+
+### Running the script
+
+**Step 1 — Open Terminal**
+
+On your Mac, press `⌘ + Space`, type **Terminal**, and press Enter.
+
+**Step 2 — Navigate to your Downloads folder**
 
 ```bash
-# One-time setup
-chmod +x get-usage.sh
-brew install jq          # recommended for reliable parsing
+cd ~/Downloads
+```
 
-# Run it
+**Step 3 — Make the script executable**
+
+```bash
+chmod +x get-usage.sh
+```
+
+> You only need to do this once. After this step you can also **double-click** the file in Finder to run it — no Terminal needed.
+
+**Step 4 — Run it**
+
+```bash
 ./get-usage.sh
 ```
 
-**What happens when you run it:**
+The script will walk you through the rest — entering your API key, choosing an org and date range, and saving the output file.
+
+---
+
+### What happens when you run it
 
 ```
 ✓ Using saved API key from Keychain
@@ -36,34 +63,31 @@ Select Date Range:
 ✓ Saved: orgname-usage_2025-12-01_to_2025-12-31.csv
 ```
 
-Your file is named automatically using your org's name and the date range — no manual renaming needed. See [`docs/get-usage-guide.md`](docs/get-usage-guide.md) for the complete walkthrough.
+Your file is named automatically — no renaming needed. See [`docs/get-usage-guide.md`](docs/get-usage-guide.md) for the complete walkthrough.
 
 ---
 
 ## 🔑 API Key Management
 
-Your CircleCI API key is stored securely in macOS Keychain — it is never written to disk as plaintext.
+Your CircleCI API key is stored securely in macOS Keychain — never written to disk as plaintext.
 
-**First run:** The script will prompt you to enter your key and save it automatically.
-
-**If your key has expired or you entered it incorrectly**, reset it with one command:
+**If your key is expired, wrong, or you get a login error**, reset it with one command:
 
 ```bash
 security delete-generic-password -s "circleci-usage-script" -a "api-key"
 ```
 
-Then re-run `./get-usage.sh` — it will prompt for a fresh key and save it.
+Then re-run `./get-usage.sh` — it will prompt you for a fresh key and save it.
 
-**Where to get or create an API key:**
+**To create a new API key:**
 1. Go to [https://app.circleci.com/settings/user/tokens](https://app.circleci.com/settings/user/tokens)
-2. Click **Create New Token**
-3. Give it a name (e.g. `Usage Export`)
-4. Copy the token — it starts with `CCIPAT_`
+2. Click **Create New Token**, give it a name, and copy it
+3. It starts with `CCIPAT_`
 
-**Signs your key needs replacing:**
-- The script returns `HTTP 401` — key is invalid or expired
-- The script returns `HTTP 403` — key doesn't have access to that org
-- The script says "API key doesn't match expected format" — you may have copied it incorrectly
+**Error signs that mean you need a new key:**
+- Script returns `HTTP 401` — key is invalid or expired
+- Script returns `HTTP 403` — key doesn't have access to that org
+- Warning about unexpected key format — key may have been copied incorrectly
 
 ---
 
@@ -83,7 +107,7 @@ Then re-run `./get-usage.sh` — it will prompt for a fresh key and save it.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Quick Start — Visualizer
 
 ### Option 1 — Local server (recommended)
 
