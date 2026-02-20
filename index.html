@@ -389,6 +389,16 @@
       // Process data
       parsedData = cleanData(results.data);
       analyzeData();
+
+      // Extract org name from CSV data and build the full file prefix
+      // This ensures the prefix is correct regardless of what the file was named
+      if (results.data.length > 0 && results.data[0].ORGANIZATION_NAME) {
+        const rawOrg = String(results.data[0].ORGANIZATION_NAME);
+        const orgSlug = rawOrg.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
+        if (orgSlug && !currentFileBaseName.startsWith(orgSlug + '-')) {
+          currentFileBaseName = orgSlug + '-' + currentFileBaseName;
+        }
+      }
       
       // Show/hide resource utilization section
       if (missingUtilizationColumns.length > 0) {

@@ -453,8 +453,8 @@ perform_export() {
                         fi
 
                                                 # Show preview of merged file
-                        echo -e "${BLUE}Preview (first 10 lines of merged file):${NC}"
-                        head -10 "$MERGED_FILE"
+                        echo -e "${BLUE}Preview (first 3 lines of merged file):${NC}"
+                        head -4 "$MERGED_FILE"
                         echo ""
 
                         # Show visualizer link
@@ -480,8 +480,8 @@ perform_export() {
                 # Show preview of first CSV file
                 FIRST_CSV=$(find "$OUTPUT_DIR" -name "*.csv" -type f | head -1)
                 if [ -n "$FIRST_CSV" ]; then
-                    echo -e "${BLUE}Preview (first 10 lines of $(basename "$FIRST_CSV")):${NC}"
-                    head -10 "$FIRST_CSV"
+                    echo -e "${BLUE}Preview (first 3 lines of $(basename "$FIRST_CSV")):${NC}"
+                    head -4 "$FIRST_CSV"
                     echo ""
 
                     # Show visualizer link for separate files
