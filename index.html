@@ -1,0 +1,2081 @@
+<!DOCTYPE html>
+<html lang="en">
+<head><!-- visualizer-version: 2026-02-20 03:35:18 -->
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CircleCI Usage Report with Resource Utilization Analysis</title>
+  <!-- Include Tailwind CSS via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- PapaParse for CSV parsing -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <!-- Lodash for data manipulation -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/lodash.js/4.17.21/lodash.min.js"></script>
+  <!-- Chart.js for visualizations -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+</head>
+<body class="bg-gray-50">
+  <div class="container mx-auto p-4">
+    <!-- Timeframe Banner -->
+    <div class="bg-blue-50 border-l-4 border-blue-500 text-blue-700 p-4 mb-6 rounded-md">
+      <p class="font-medium">The data displayed reflects the timeframe selected in the uploaded dataset</p>
+    </div>
+    
+    <header class="mb-8">
+      <h1 class="text-3xl font-bold text-gray-800">CircleCI Usage Report</h1>
+      <p class="text-gray-600 mt-2">Analyze your CircleCI usage patterns, cost distributions, and resource utilization</p>
+    </header>
+
+    <div id="file-upload" class="mb-8 p-6 bg-white rounded-lg shadow">
+      <h2 class="text-xl font-semibold mb-4">Upload CircleCI Usage Report</h2>
+      <div class="flex flex-col space-y-4">
+        <div>
+          <label class="block text-sm font-medium text-gray-700 mb-2">
+            Select CircleCI Usage Report CSV File
+          </label>
+          <input 
+            type="file" 
+            id="csv-file" 
+            accept=".csv" 
+            class="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 cursor-pointer"
+          >
+        </div>
+        <div id="error-message" class="hidden p-4 bg-red-100 text-red-700 rounded-md"></div>
+      </div>
+    </div>
+
+    <div id="loading" class="hidden mb-8 p-6 bg-white rounded-lg shadow flex items-center justify-center">
+      <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-700"></div>
+      <span class="ml-3 text-lg">Analyzing your data...</span>
+    </div>
+
+    <div id="results" class="hidden">
+      <!-- Summary Stats -->
+      <div class="mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div class="p-4 bg-white rounded-lg shadow">
+          <h3 class="text-sm font-medium text-gray-500">Total Jobs Analyzed</h3>
+          <p id="total-jobs" class="mt-1 text-2xl font-semibold text-gray-900">0</p>
+        </div>
+        <div class="p-4 bg-white rounded-lg shadow">
+          <h3 class="text-sm font-medium text-gray-500">Total Credits Used</h3>
+          <p id="total-credits" class="mt-1 text-2xl font-semibold text-gray-900">0</p>
+        </div>
+        <div class="p-4 bg-white rounded-lg shadow">
+          <h3 class="text-sm font-medium text-gray-500">Success Rate (Jobs)</h3>
+          <p id="success-rate" class="mt-1 text-2xl font-semibold text-gray-900">0%</p>
+        </div>
+        <div class="p-4 bg-white rounded-lg shadow">
+          <h3 class="text-sm font-medium text-gray-500">Avg. Job Duration</h3>
+          <p id="avg-duration" class="mt-1 text-2xl font-semibold text-gray-900">0s</p>
+        </div>
+      
+      <!-- ⚡ GEN2 RESOURCE ANALYSIS SECTION ⚡ -->
+      <div id="gen2-analysis-section" class="hidden mb-8 bg-white rounded-lg shadow overflow-hidden">
+        <div class="px-6 py-4 text-white" style="background:linear-gradient(135deg,#0d1b2a,#1a3a5c)">
+          <div class="flex items-start justify-between flex-wrap gap-2">
+            <div>
+              <h2 class="text-xl font-bold tracking-tight">⚡ Gen2 Resource Opportunities</h2>
+              <p class="text-sm mt-1" style="color:#90b8d4">
+                Jobs eligible to migrate from Gen1 (x86 Docker/Machine) to Gen2 (Arm Graviton).
+                Standard CircleCI pricing — verify against your plan.
+              </p>
+            </div>
+            <span class="text-xs px-2 py-1 rounded self-start mt-1 font-semibold whitespace-nowrap" style="background:#00b140;color:#fff">Arm = 40% cheaper/min</span>
+          </div>
+        </div>
+        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+          <div class="px-5 py-4">
+            <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Gen1 Job Types Found</p>
+            <p id="g2-eligible" class="text-3xl font-bold text-gray-900">—</p>
+            <p class="text-xs text-gray-400 mt-1">Docker/Machine Linux with a Gen2 equivalent</p>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Potential Credit Savings</p>
+            <p id="g2-savings" class="text-3xl font-bold text-green-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">Scenario A: direct Arm swap, same runtime</p>
+          </div>
+          <div class="px-5 py-4">
+            <p class="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-1">Already on Gen2</p>
+            <p id="g2-already" class="text-3xl font-bold text-purple-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">Jobs already running Arm or newer resources</p>
+          </div>
+        </div>
+        <div class="border-t border-gray-200 px-6 pt-5 pb-6">
+          <h3 class="font-semibold text-gray-800 mb-1">💰 Scenario A — Credit Savings: Direct Gen2 Swap</h3>
+          <p class="text-xs text-gray-400 mb-4">
+            Same job, same runtime. Arm resources run at 40% lower credits/min. Red = current Gen1 &nbsp;·&nbsp; Green = projected Gen2.
+            <span class="text-amber-600 font-bold">~</span> = CPU count differs slightly between Gen1 and Gen2 equivalent.
+          </p>
+          <div style="position:relative;height:360px"><canvas id="g2-save-chart"></canvas></div>
+        </div>
+        <div class="border-t border-gray-200 px-6 pt-5 pb-6">
+          <h3 class="font-semibold text-gray-800 mb-1">⏱ Scenario B — Speed Upgrade: Upsize on Gen2 for CPU-Bound Jobs</h3>
+          <p class="text-xs text-gray-400 mb-4">
+            Only jobs with CPU &gt; 65% utilization. Estimated using Amdahl's Law (80% parallelism assumption, conservative).
+            High confidence = CPU &gt; 80%. Many of these also reduce total credits despite costing more per minute.
+          </p>
+          <div style="position:relative;height:300px"><canvas id="g2-speed-chart"></canvas></div>
+          <p id="g2-speed-empty" class="hidden text-center text-gray-400 py-8 text-sm">
+            No CPU-bound candidates — either no jobs exceed 65% CPU threshold or utilization data is unavailable.
+          </p>
+        </div>
+        <div class="border-t border-gray-100 overflow-hidden">
+          <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+            <h3 class="font-semibold text-gray-700 text-sm">All Gen2 Migration Opportunities</h3>
+            <span class="text-xs text-gray-400">Top 50 by credit savings</span>
+          </div>
+          <div class="overflow-x-auto">
+            <table class="min-w-full divide-y divide-gray-100 text-sm">
+              <thead class="bg-gray-50">
+                <tr>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Job</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Project</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Current</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Gen2 Equiv</th>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Credits Used</th>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Est Savings</th>
+                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Save %</th>
+                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Speed Opp</th>
+                </tr>
+              </thead>
+              <tbody id="g2-table-body" class="bg-white divide-y divide-gray-100"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="bg-amber-50 border-t border-amber-200 px-6 py-4 rounded-b-xl">
+          <p class="text-xs text-amber-800">
+            <strong>⚠ Before migrating:</strong> Verify your Docker images support
+            <code>linux/arm64</code> (most public images do; custom images may not).
+            Test in a feature branch first. Speedup estimates are theoretical.
+            Jobs marked <strong>~</strong> use an approximate Gen2 equivalent with a slightly different CPU count.
+          </p>
+        </div>
+      </div>
+      <!-- END GEN2 SECTION -->
+</div>
+      
+      <!-- NEW: Resource Utilization Insights -->
+      <div class="mb-8 p-6 bg-white rounded-lg shadow" id="resource-utilization-section">
+        <h2 class="text-2xl font-bold text-gray-800 mb-4">Resource Utilization Insights</h2>
+        
+        <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+          <div class="p-4 bg-blue-50 rounded-lg shadow-sm">
+            <h3 class="text-lg font-medium text-blue-700">Underutilized Jobs</h3>
+            <p id="underutilized-count" class="mt-1 text-3xl font-semibold text-blue-900">0</p>
+            <p class="text-sm text-blue-600 mt-1">Jobs with CPU & RAM utilization ≤ 40%</p>
+          </div>
+          <div class="p-4 bg-green-50 rounded-lg shadow-sm">
+            <h3 class="text-lg font-medium text-green-700">Potential Credit Savings</h3>
+            <p id="potential-savings" class="mt-1 text-3xl font-semibold text-green-900">0</p>
+            <p class="text-sm text-green-600 mt-1">Estimated savings by right-sizing</p>
+          </div>
+          <div class="p-4 bg-amber-50 rounded-lg shadow-sm">
+            <h3 class="text-lg font-medium text-amber-700">Underprovisioned Jobs</h3>
+            <p id="overprovisioned-count" class="mt-1 text-3xl font-semibold text-amber-900">0</p>
+            <p class="text-sm text-amber-600 mt-1">Jobs with CPU or RAM utilization ≥ 80%</p>
+          </div>
+        </div>
+        
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-6">
+          <!-- CPU Utilization Distribution -->
+          <div class="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-medium text-gray-700 mb-2">CPU Utilization Distribution</h3>
+            <canvas id="cpu-utilization-chart" height="250"></canvas>
+          </div>
+          
+          <!-- RAM Utilization Distribution -->
+          <div class="p-4 bg-white rounded-lg shadow-sm border border-gray-200">
+            <h3 class="text-lg font-medium text-gray-700 mb-2">RAM Utilization Distribution</h3>
+            <canvas id="ram-utilization-chart" height="250"></canvas>
+          </div>
+        </div>
+        
+        <!-- Tabs for Underutilized and Underprovisioned Jobs -->
+        <div class="mb-6">
+          <div class="border-b border-gray-200 mb-4">
+            <nav class="-mb-px flex space-x-8">
+              <button id="underutilized-tab" class="px-1 py-4 text-sm font-medium text-blue-600 border-b-2 border-blue-600">
+                Underutilized Jobs
+              </button>
+              <button id="overprovisioned-tab" class="px-1 py-4 text-sm font-medium text-gray-500 hover:text-gray-700 hover:border-gray-300 border-b-2 border-transparent">
+                Underprovisioned Jobs
+              </button>
+            </nav>
+          </div>
+          
+          <!-- Underutilized Jobs Tab Content -->
+          <div id="underutilized-jobs-content">
+            <h3 class="text-lg font-medium text-gray-700 mb-2">Top 10 Underutilized Jobs (By Total Credits)</h3>
+            <div id="no-underutilized-message" class="hidden p-4 bg-gray-50 rounded-md text-gray-600">
+              No jobs found with both CPU and RAM utilization ≤ 40%.
+            </div>
+            <div class="overflow-x-auto">
+              <table id="underutilized-jobs-table" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Credits</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Suggested Class</th>
+                  </tr>
+                </thead>
+                <tbody id="underutilized-jobs-body" class="bg-white divide-y divide-gray-200">
+                  <!-- Table will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <!-- Underprovisioned Jobs Tab Content -->
+          <div id="overprovisioned-jobs-content" class="hidden">
+            <h3 class="text-lg font-medium text-gray-700 mb-2">Top 10 Underprovisioned Jobs (By High Utilization)</h3>
+            <div id="no-overprovisioned-message" class="hidden p-4 bg-gray-50 rounded-md text-gray-600">
+              No jobs found with CPU or RAM utilization ≥ 80%.
+            </div>
+            <div class="overflow-x-auto">
+              <table id="overprovisioned-jobs-table" class="min-w-full divide-y divide-gray-200">
+                <thead class="bg-gray-50">
+                  <tr>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Name</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Credits</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Suggested Class</th>
+                  </tr>
+                </thead>
+                <tbody id="overprovisioned-jobs-body" class="bg-white divide-y divide-gray-200">
+                  <!-- Table will be populated by JavaScript -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+        
+        <!-- Download Buttons -->
+        <div class="flex justify-end space-x-4">
+          <button id="download-overprovisioned-report" class="px-4 py-2 bg-amber-600 text-white text-sm font-medium rounded-md hover:bg-amber-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-amber-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Download Underprovisioned Report
+          </button>
+          <button id="download-utilization-report" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed" disabled>
+            Download Underutilized Report
+          </button>
+        </div>
+      </div>
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Top 10 Credit Consuming Projects -->
+        <div class="p-6 bg-white rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">Top 10 Credit Consuming Projects</h2>
+          <canvas id="projects-credits-chart" height="300"></canvas>
+        </div>
+        
+        <!-- Top 10 Credit Consuming Workflows -->
+        <div class="p-6 bg-white rounded-lg shadow">
+          <h2 class="text-xl font-semibold mb-4">Top 10 Credit Consuming Workflows</h2>
+          <canvas id="workflows-credits-chart" height="300"></canvas>
+        </div>
+
+      
+      <div class="mb-8 p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Top 10 Credit Consuming Jobs</h2>
+        <canvas id="jobs-credits-chart" height="300"></canvas>
+      </div>
+
+      <!-- Daily/Weekly Credit Burn Rate -->
+      <div class="p-6 bg-white rounded-lg shadow">
+        <h2 class="text-xl font-semibold mb-4">Credit Burn Rate</h2>
+        <div class="flex justify-end mb-2">
+          <button id="daily-toggle" class="px-3 py-1 bg-blue-600 text-white text-sm font-medium rounded-l-md hover:bg-blue-700">Daily</button>
+          <button id="weekly-toggle" class="px-3 py-1 bg-gray-200 text-gray-700 text-sm font-medium rounded-r-md hover:bg-gray-300">Weekly</button>
+        </div>
+        <canvas id="burn-rate-chart" height="300"></canvas>
+      </div>
+      
+      <!-- Credit Usage by Resource Class -->
+      <div class="p-6 bg-white rounded-lg shadow mt-8">
+        <h2 class="text-xl font-semibold mb-4">Credit Usage by Resource Class</h2>
+        <canvas id="resource-class-chart" height="300"></canvas>
+      </div> 
+    </div>     
+      
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
+        <!-- Actionable Insights Section -->
+        <div class="mb-8">
+          <h2 class="text-2xl font-bold text-gray-800 mb-4">Actionable Insights</h2>
+          
+          <!-- Top 10 Failed Jobs by Credit Cost -->
+          <div class="p-6 bg-white rounded-lg shadow">
+            <h2 class="text-xl font-semibold mb-4">Top 10 Failed Jobs by Credit Cost</h2>
+            <canvas id="failed-jobs-chart" height="300"></canvas>
+          </div>
+        </div>
+        
+        <!-- Top 10 Longest Running Jobs -->
+        <div class="p-6 bg-white rounded-lg shadow mb-8">
+          <h2 class="text-xl font-semibold mb-4">Top 10 Longest Running Jobs</h2>
+          <canvas id="longest-jobs-chart" height="300"></canvas>
+        </div>
+      </div>
+
+      <!-- Download Report Button -->
+      <div class="flex justify-center mt-6 mb-12">
+        <button id="download-report" class="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500">
+          Download Detailed Report (CSV)
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Global variables
+    let parsedData = [];
+    let currentFileBaseName = "";
+    let projectsCreditsChart = null;
+    let workflowsCreditsChart = null;
+    let longestJobsChart = null;
+    let resourceClassChart = null;
+    let burnRateChart = null;
+    let jobsCreditsChart = null;
+    let failedJobsChart = null;
+    let cpuUtilizationChart = null;
+    let ramUtilizationChart = null;
+    let showDaily = true;
+    
+    // Resource utilization thresholds
+    const UNDERUTILIZATION_THRESHOLD = 40;
+    const OVERPROVISIONING_THRESHOLD = 80;
+
+    // ═══════════════════════════════════════════════════════════════════════
+    // GEN2 RESOURCE ANALYSIS — Credit savings + speed opportunity calculator
+    // Credit rates: standard CircleCI pricing. Verify against your plan.
+    // Math verified: direct savings = 40% exact; Amdahl estimates conservative.
+    // ═══════════════════════════════════════════════════════════════════════
+
+    const GEN1_RESOURCES = {
+      'docker:small':    { cpm:5,   cpu:1,  ram:2   },
+      'docker:medium':   { cpm:10,  cpu:2,  ram:4   },
+      'docker:medium+':  { cpm:15,  cpu:3,  ram:6   },
+      'docker:large':    { cpm:20,  cpu:4,  ram:8   },
+      'docker:xlarge':   { cpm:40,  cpu:8,  ram:16  },
+      'docker:2xlarge':  { cpm:80,  cpu:16, ram:32  },
+      'docker:2xlarge+': { cpm:100, cpu:20, ram:40  },
+      'machine:medium':  { cpm:10,  cpu:2,  ram:7.5 },
+      'machine:large':   { cpm:20,  cpu:4,  ram:15  },
+      'machine:xlarge':  { cpm:40,  cpu:8,  ram:31  },
+      'machine:2xlarge': { cpm:80,  cpu:16, ram:63  },
+    };
+
+    const GEN2_RESOURCES = {
+      // Arm Graviton (linux/arm64) — 40% cheaper per minute than x86 equivalent
+      'arm.medium':  { cpm:6,  cpu:2,  ram:8  },
+      'arm.large':   { cpm:12, cpu:4,  ram:16 },
+      'arm.xlarge':  { cpm:24, cpu:8,  ram:32 },
+      'arm.2xlarge': { cpm:48, cpu:16, ram:64 },
+    };
+
+    // Gen1 resource class → direct Gen2 Arm equivalent
+    // Mappings marked ~ have different CPU counts (flagged in UI)
+    const GEN1_TO_GEN2 = {
+      'medium':   { arm: 'arm.medium',  approx: false }, // 2→2 CPU, 10→6 cpm
+      'large':    { arm: 'arm.large',   approx: false }, // 4→4 CPU, 20→12 cpm
+      'xlarge':   { arm: 'arm.xlarge',  approx: false }, // 8→8 CPU, 40→24 cpm
+      '2xlarge':  { arm: 'arm.2xlarge', approx: false }, // 16→16 CPU, 80→48 cpm
+      'medium+':  { arm: 'arm.medium',  approx: true  }, // 3→2 CPU (~), 15→6 cpm
+      '2xlarge+': { arm: 'arm.2xlarge', approx: true  }, // 20→16 CPU (~), 100→48 cpm
+    };
+
+    const ARM_CLASSES_ORDERED = ['arm.medium','arm.large','arm.xlarge','arm.2xlarge'];
+
+    let gen2SavingsChart = null;
+    let gen2SpeedChart   = null;
+
+    // ── isGen2Resource ────────────────────────────────────────────────────────
+    function isGen2Resource(executor, resourceClass) {
+      const exec = (executor || '').toLowerCase();
+      const rc   = (resourceClass || '').toLowerCase();
+      return exec === 'arm' || rc.startsWith('arm.') || rc.includes('.gen2') ||
+             rc.includes('m1') || rc.includes('m2') || rc.includes('m-series');
+    }
+
+    // ── analyzeGen2Opportunities ──────────────────────────────────────────────
+    // Returns { opportunities[], already_gen2_count, already_gen2_credits }
+    // Scenario A: direct Gen2 swap — pure math, 40% credit reduction, same runtime
+    // Scenario B: upsize on Gen2 — Amdahl's Law speedup for CPU-bound jobs
+    function analyzeGen2Opportunities(data) {
+      const groups = {};
+      let alreadyGen2Count = 0;
+      let alreadyGen2Credits = 0;
+
+      data.forEach(function(job) {
+        const executor = (job.EXECUTOR || '').toLowerCase().trim();
+        const rc       = (job.RESOURCE_CLASS || '').toLowerCase().trim();
+
+        if (isGen2Resource(executor, rc)) {
+          alreadyGen2Count++;
+          alreadyGen2Credits += (job.TOTAL_CREDITS || 0);
+          return;
+        }
+
+        // Only Docker and Machine Linux
+        if (executor && executor !== 'docker' && executor !== 'machine') return;
+        if (!GEN1_TO_GEN2[rc]) return;
+
+        const key = (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') +
+                    '||' + rc + '||' + executor;
+
+        if (!groups[key]) {
+          groups[key] = {
+            project: job.PROJECT_NAME || 'unknown',
+            job_name: job.JOB_NAME    || 'unknown',
+            resource_class: rc,
+            executor: executor,
+            total_credits: 0, total_runs: 0, total_seconds: 0,
+            cpu_vals: [], ram_vals: [],
+          };
+        }
+        const g = groups[key];
+        g.total_credits += (job.TOTAL_CREDITS    || 0);
+        g.total_runs    += 1;
+        g.total_seconds += (job.JOB_RUN_SECONDS  || 0);
+        const cpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
+        const ram = parseFloat(job.MEDIAN_RAM_UTILIZATION_PCT);
+        if (!isNaN(cpu)) g.cpu_vals.push(cpu);
+        if (!isNaN(ram)) g.ram_vals.push(ram);
+      });
+
+      const opps = [];
+
+      Object.values(groups).forEach(function(g) {
+        const mapping  = GEN1_TO_GEN2[g.resource_class];
+        const gen2Info = GEN2_RESOURCES[mapping.arm];
+
+        // Determine Gen1 CPM — try executor-specific first
+        const g1key = g.executor
+          ? (g.executor + ':' + g.resource_class)
+          : ('docker:'    + g.resource_class);
+        const gen1Info = GEN1_RESOURCES[g1key] || GEN1_RESOURCES['docker:' + g.resource_class];
+        if (!gen1Info || !gen2Info) return;
+
+        const avg_cpu = g.cpu_vals.length > 0 ? _.mean(g.cpu_vals) : null;
+        const avg_ram = g.ram_vals.length > 0 ? _.mean(g.ram_vals) : null;
+        const avg_sec = g.total_runs > 0 ? g.total_seconds / g.total_runs : 0;
+
+        // ── Scenario A: Direct Gen2 equivalent ─────────────────────────────
+        // Formula: gen2_credits = total_credits * (gen2_cpm / gen1_cpm)
+        // Savings = total_credits * (1 - gen2_cpm / gen1_cpm)
+        // For standard mappings this is always exactly 40%
+        const savingsPct    = (gen1Info.cpm - gen2Info.cpm) / gen1Info.cpm;
+        const savingsCredits = Math.round(g.total_credits * savingsPct);
+        const projectedCredits = Math.round(g.total_credits - savingsCredits);
+
+        // ── Scenario B: Upsize Gen2 for CPU-bound jobs ──────────────────────
+        // Only when: CPU util > 65%, job > 30s avg, larger Arm class available
+        // Amdahl: speedup = 1 / (1 - P + P/N)
+        //   P = conservative parallelizable fraction = cpu_util/100 * 0.80
+        //   N = new_cpu_count / old_cpu_count (Gen1 baseline)
+        let speedOpp = null;
+        if (avg_cpu !== null && avg_cpu > 65 && avg_sec > 30 && gen2Info.cpu < 16) {
+          const curIdx = ARM_CLASSES_ORDERED.indexOf(mapping.arm);
+          if (curIdx >= 0 && curIdx < ARM_CLASSES_ORDERED.length - 1) {
+            const upClass  = ARM_CLASSES_ORDERED[curIdx + 1];
+            const upInfo   = GEN2_RESOURCES[upClass];
+
+            const P        = Math.min((avg_cpu / 100) * 0.80, 0.88);
+            const N        = upInfo.cpu / gen1Info.cpu;
+            const speedup  = 1 / (1 - P + P / N);
+            const newSec   = avg_sec / speedup;
+
+            const oldCPR   = (avg_sec  / 60) * gen1Info.cpm;
+            const newCPR   = (newSec   / 60) * upInfo.cpm;
+            const creditDelta = Math.round((newCPR - oldCPR) * g.total_runs);
+            const timeSaved   = Math.round((avg_sec - newSec) * g.total_runs);
+
+            speedOpp = {
+              arm_class:        upClass,
+              new_cpm:          upInfo.cpm,
+              speedup_x:        parseFloat(speedup.toFixed(2)),
+              pct_faster:       Math.round((1 - 1 / speedup) * 100),
+              credit_delta:     creditDelta,       // negative = saves credits too
+              total_time_saved: timeSaved,         // seconds across all runs
+              confidence:       avg_cpu > 80 ? 'high' : 'medium',
+            };
+          }
+        }
+
+        opps.push({
+          project:           g.project,
+          job_name:          g.job_name,
+          resource_class:    g.resource_class,
+          executor:          g.executor,
+          gen1_cpm:          gen1Info.cpm,
+          gen1_cpu:          gen1Info.cpu,
+          total_credits:     Math.round(g.total_credits),
+          total_runs:        g.total_runs,
+          avg_sec:           Math.round(avg_sec),
+          avg_cpu:           avg_cpu !== null ? parseFloat(avg_cpu.toFixed(1)) : null,
+          avg_ram:           avg_ram !== null ? parseFloat(avg_ram.toFixed(1)) : null,
+          gen2_class:        mapping.arm,
+          gen2_cpm:          gen2Info.cpm,
+          gen2_cpu:          gen2Info.cpu,
+          is_approx:         mapping.approx,
+          savings_pct:       Math.round(savingsPct * 100),
+          savings_credits:   savingsCredits,
+          projected_credits: projectedCredits,
+          speed_opp:         speedOpp,
+        });
+      });
+
+      opps.sort(function(a,b){ return b.savings_credits - a.savings_credits; });
+
+      return {
+        opportunities:        opps,
+        already_gen2_count:   alreadyGen2Count,
+        already_gen2_credits: Math.round(alreadyGen2Credits),
+      };
+    }
+
+    // ── updateGen2Analysis ────────────────────────────────────────────────────
+    function updateGen2Analysis() {
+      const result = analyzeGen2Opportunities(parsedData);
+      const opps   = result.opportunities;
+
+      // Summary cards
+      const totalSavings = opps.reduce(function(s,o){ return s + o.savings_credits; }, 0);
+      document.getElementById('gen2-eligible-count').textContent =
+        opps.length.toLocaleString() + ' job types';
+      document.getElementById('gen2-total-savings').textContent =
+        totalSavings.toLocaleString() + ' credits';
+      document.getElementById('gen2-already-count').textContent =
+        result.already_gen2_count.toLocaleString();
+
+      // Render charts
+      renderGen2SavingsChart(opps.slice(0, 12));
+      renderGen2SpeedChart(opps.filter(function(o){ return o.speed_opp !== null; }).slice(0, 12));
+
+      // Render table
+      renderGen2Table(opps.slice(0, 50));
+
+      // Show section
+      const section = document.getElementById('gen2-analysis-section');
+      if (section) section.classList.remove('hidden');
+    }
+
+    // ── renderGen2SavingsChart ────────────────────────────────────────────────
+    function renderGen2SavingsChart(opps) {
+      const canvas = document.getElementById('gen2-savings-chart');
+      if (!canvas || opps.length === 0) return;
+      if (gen2SavingsChart) { gen2SavingsChart.destroy(); gen2SavingsChart = null; }
+
+      const labels  = opps.map(function(o) {
+        const approx = o.is_approx ? ' ~' : '';
+        return o.job_name.length > 28 ? o.job_name.slice(0,26) + '..' + approx : o.job_name + approx;
+      });
+
+      gen2SavingsChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [
+            {
+              label: 'Current Credits (Gen1)',
+              data: opps.map(function(o){ return o.total_credits; }),
+              backgroundColor: 'rgba(239,68,68,0.6)',
+              borderColor:     'rgba(239,68,68,1)',
+              borderWidth: 1,
+            },
+            {
+              label: 'Projected Credits (Gen2 Arm)',
+              data: opps.map(function(o){ return o.projected_credits; }),
+              backgroundColor: 'rgba(34,197,94,0.65)',
+              borderColor:     'rgba(34,197,94,1)',
+              borderWidth: 1,
+            },
+          ],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { position: 'top' },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(ctx) {
+                  const o = opps[ctx.dataIndex];
+                  if (ctx.datasetIndex === 1) {
+                    return '  Saves ~' + o.savings_credits.toLocaleString() +
+                           ' credits (' + o.savings_pct + '%)' +
+                           (o.is_approx ? '  [~CPU count differs]' : '');
+                  }
+                  return '  ' + o.total_runs + ' runs · ' + o.resource_class + ' → ' + o.gen2_class;
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: 'Credits' },
+              beginAtZero: true,
+            },
+          },
+        },
+      });
+    }
+
+    // ── renderGen2SpeedChart ──────────────────────────────────────────────────
+    function renderGen2SpeedChart(opps) {
+      const canvas = document.getElementById('gen2-speed-chart');
+      const empty  = document.getElementById('gen2-speed-empty');
+
+      if (gen2SpeedChart) { gen2SpeedChart.destroy(); gen2SpeedChart = null; }
+
+      if (!opps || opps.length === 0) {
+        if (canvas) canvas.classList.add('hidden');
+        if (empty)  empty.classList.remove('hidden');
+        return;
+      }
+      if (canvas) canvas.classList.remove('hidden');
+      if (empty)  empty.classList.add('hidden');
+
+      const labels = opps.map(function(o) {
+        return o.job_name.length > 28 ? o.job_name.slice(0,26) + '..' : o.job_name;
+      });
+
+      const pctFaster = opps.map(function(o){ return o.speed_opp.pct_faster; });
+      const colors    = opps.map(function(o) {
+        return o.speed_opp.confidence === 'high'
+          ? 'rgba(99,102,241,0.75)'
+          : 'rgba(139,92,246,0.5)';
+      });
+
+      gen2SpeedChart = new Chart(canvas, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: '% Faster on Arm (estimated)',
+            data: pctFaster,
+            backgroundColor: colors,
+            borderColor: colors.map(function(c){ return c.replace('0.7','1').replace('0.5','1'); }),
+            borderWidth: 1,
+          }],
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: { display: false },
+            tooltip: {
+              callbacks: {
+                afterLabel: function(ctx) {
+                  const o = opps[ctx.dataIndex];
+                  const sp = o.speed_opp;
+                  const min = Math.round(sp.total_time_saved / 60);
+                  const cred = sp.credit_delta < 0
+                    ? '+ saves ' + Math.abs(sp.credit_delta).toLocaleString() + ' credits'
+                    : '+ costs ' + sp.credit_delta.toLocaleString() + ' more credits';
+                  return [
+                    '  ' + sp.speedup_x + 'x speedup · ' + sp.confidence + ' confidence',
+                    '  ' + min.toLocaleString() + ' min saved (all runs)',
+                    '  ' + cred,
+                    '  ' + o.resource_class + ' → ' + sp.arm_class,
+                    '  CPU util: ' + (o.avg_cpu !== null ? o.avg_cpu + '%' : 'n/a'),
+                  ];
+                },
+              },
+            },
+          },
+          scales: {
+            x: {
+              title: { display: true, text: '% Faster (Amdahl estimate, conservative)' },
+              beginAtZero: true,
+              max: 60,
+            },
+          },
+        },
+      });
+    }
+
+    // ── renderGen2Table ───────────────────────────────────────────────────────
+    function renderGen2Table(opps) {
+      const body = document.getElementById('gen2-table-body');
+      if (!body) return;
+      body.innerHTML = '';
+      if (opps.length === 0) {
+        body.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 py-6 text-sm">' +
+          'No Gen1 Linux jobs found with a Gen2 equivalent. ' +
+          'Jobs may already be on Arm, or executor data may be unavailable.</td></tr>';
+        return;
+      }
+      opps.forEach(function(o) {
+        const approxFlag = o.is_approx
+          ? '<span class="text-amber-600 ml-1" title="CPU count differs between Gen1 and Gen2 equivalent">~</span>'
+          : '';
+        const speedCell = o.speed_opp
+          ? '<span class="text-purple-600 font-medium">' + o.speed_opp.pct_faster + '% faster</span>' +
+            '<span class="text-xs text-gray-400 ml-1">(' + o.speed_opp.confidence + ')</span>'
+          : '<span class="text-gray-300">—</span>';
+        const row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 text-sm';
+        row.innerHTML =
+          '<td class="px-4 py-3 font-medium text-gray-800">' + escapeHtml(o.job_name) + '</td>' +
+          '<td class="px-4 py-3 text-gray-500 text-xs">' + escapeHtml(o.project) + '</td>' +
+          '<td class="px-4 py-3"><span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">' +
+            o.resource_class + '</span>' +
+            '<span class="text-xs text-gray-400 ml-1">' + o.gen1_cpm + 'c/min</span></td>' +
+          '<td class="px-4 py-3"><span class="font-mono text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">' +
+            o.gen2_class + approxFlag + '</span>' +
+            '<span class="text-xs text-gray-400 ml-1">' + o.gen2_cpm + 'c/min</span></td>' +
+          '<td class="px-4 py-3 text-right text-gray-700">' + o.total_credits.toLocaleString() + '</td>' +
+          '<td class="px-4 py-3 text-right font-semibold text-green-600">' +
+            o.savings_credits.toLocaleString() + '</td>' +
+          '<td class="px-4 py-3 text-right text-green-600">' + o.savings_pct + '%</td>' +
+          '<td class="px-4 py-3">' + speedCell + '</td>';
+        body.appendChild(row);
+      });
+    }
+
+    // ── helper ────────────────────────────────────────────────────────────────
+    function escapeHtml(s) {
+      return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    }
+
+    
+    
+    // Default branch name - change this as needed
+    const defaultBranchName = "main";
+
+    // Initialize the page
+    document.addEventListener('DOMContentLoaded', function() {
+      // Set up file input listener
+      document.getElementById('csv-file').addEventListener('change', handleFileUpload);
+      
+      // Set up burn rate toggle buttons
+      document.getElementById('daily-toggle').addEventListener('click', function() {
+        showDaily = true;
+        updateBurnRateToggle();
+        if (parsedData.length > 0) {
+          updateBurnRateChart();
+        }
+      });
+      
+      document.getElementById('weekly-toggle').addEventListener('click', function() {
+        showDaily = false;
+        updateBurnRateToggle();
+        if (parsedData.length > 0) {
+          updateBurnRateChart();
+        }
+      });
+      
+      // Set up utilization tabs
+      document.getElementById('underutilized-tab').addEventListener('click', function() {
+        showUnderutilizedTab();
+      });
+      
+      document.getElementById('overprovisioned-tab').addEventListener('click', function() {
+        showOverprovisionedTab();
+      });
+      
+      // Set up download buttons
+      document.getElementById('download-report').addEventListener('click', downloadReport);
+      document.getElementById('download-utilization-report').addEventListener('click', downloadUtilizationReport);
+      document.getElementById('download-overprovisioned-report').addEventListener('click', downloadOverprovisionedReport);
+
+      // ── TSM Toolkit auto-load ──────────────────────────────────────
+      // If ?autoload=filename.csv is in the URL (set by the toolkit),
+      // fetch the file from the local server and load it automatically.
+      const _autoloadFile = new URLSearchParams(window.location.search).get('autoload');
+      if (_autoloadFile) {
+        currentFileBaseName = decodeURIComponent(_autoloadFile).replace(/\.csv$/i, '');
+        document.getElementById('loading').classList.remove('hidden');
+        document.getElementById('results').classList.add('hidden');
+        document.getElementById('error-message').classList.add('hidden');
+        fetch(encodeURIComponent(_autoloadFile))
+          .then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status + ' loading ' + _autoloadFile);
+            return response.text();
+          })
+          .then(function(csvText) {
+            Papa.parse(csvText, {
+              header: true,
+              dynamicTyping: true,
+              skipEmptyLines: true,
+              complete: function(results) { processParseResults(results); },
+              error: function(err) {
+                document.getElementById('loading').classList.add('hidden');
+                document.getElementById('file-upload').classList.remove('hidden');
+                showError('Parse error on auto-load: ' + err.message);
+              }
+            });
+          })
+          .catch(function(err) {
+            document.getElementById('loading').classList.add('hidden');
+            document.getElementById('file-upload').classList.remove('hidden');
+            showError('Could not auto-load file: ' + err.message);
+          });
+      }
+      // ── end auto-load ──────────────────────────────────────────────
+    });
+    
+    function showUnderutilizedTab() {
+      // Update tab styling
+      document.getElementById('underutilized-tab').classList.add('text-blue-600', 'border-blue-600');
+      document.getElementById('underutilized-tab').classList.remove('text-gray-500', 'border-transparent');
+      document.getElementById('overprovisioned-tab').classList.remove('text-blue-600', 'border-blue-600');
+      document.getElementById('overprovisioned-tab').classList.add('text-gray-500', 'border-transparent');
+      
+      // Show/hide content
+      document.getElementById('underutilized-jobs-content').classList.remove('hidden');
+      document.getElementById('overprovisioned-jobs-content').classList.add('hidden');
+    }
+    
+    function showOverprovisionedTab() {
+      // Update tab styling
+      document.getElementById('overprovisioned-tab').classList.add('text-blue-600', 'border-blue-600');
+      document.getElementById('overprovisioned-tab').classList.remove('text-gray-500', 'border-transparent');
+      document.getElementById('underutilized-tab').classList.remove('text-blue-600', 'border-blue-600');
+      document.getElementById('underutilized-tab').classList.add('text-gray-500', 'border-transparent');
+      
+      // Show/hide content
+      document.getElementById('overprovisioned-jobs-content').classList.remove('hidden');
+      document.getElementById('underutilized-jobs-content').classList.add('hidden');
+    }
+
+    function processParseResults(results) {
+      if (results.data.length === 0 || !results.meta.fields) {
+        showError("The file appears to be empty or invalid");
+        return;
+      }
+      
+      // Basic required columns
+      const requiredColumns = [
+        'PROJECT_NAME', 'JOB_NAME', 'WORKFLOW_NAME', 'RESOURCE_CLASS',
+        'JOB_BUILD_STATUS', 'JOB_RUN_SECONDS', 'TOTAL_CREDITS',
+        'JOB_RUN_DATE', 'PIPELINE_CREATED_AT', 'VCS_BRANCH'
+      ];
+      const missingBasicColumns = requiredColumns.filter(col => !results.meta.fields.includes(col));
+      if (missingBasicColumns.length > 0) {
+        showError(`Missing required columns: ${missingBasicColumns.join(', ')}`);
+        return;
+      }
+      
+      // Check for resource utilization columns
+      const utilizationColumns = ['MEDIAN_CPU_UTILIZATION_PCT', 'MEDIAN_RAM_UTILIZATION_PCT'];
+      const missingUtilizationColumns = utilizationColumns.filter(col => !results.meta.fields.includes(col));
+      
+      // Process data
+      parsedData = cleanData(results.data);
+      analyzeData();
+
+      // Extract org name from CSV data and build the full file prefix
+      // This ensures the prefix is correct regardless of what the file was named
+      if (results.data.length > 0 && results.data[0].ORGANIZATION_NAME) {
+        const rawOrg = String(results.data[0].ORGANIZATION_NAME);
+        const orgSlug = rawOrg.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9\-_]/g, '');
+        if (orgSlug && !currentFileBaseName.startsWith(orgSlug + '-')) {
+          currentFileBaseName = orgSlug + '-' + currentFileBaseName;
+        }
+      }
+      
+      // Show/hide resource utilization section
+      if (missingUtilizationColumns.length > 0) {
+        document.getElementById('resource-utilization-section').classList.add('hidden');
+        console.warn(`Missing utilization columns: ${missingUtilizationColumns.join(', ')}. Skipping.`);
+      } else {
+        document.getElementById('resource-utilization-section').classList.remove('hidden');
+        updateResourceUtilizationAnalysis();
+      }
+      
+      // Show results
+      document.getElementById('loading').classList.add('hidden');
+      document.getElementById('results').classList.remove('hidden');
+    }
+
+    function handleFileUpload(event) {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      // Capture base filename for report naming
+      currentFileBaseName = file.name.replace(/\.csv$/i, '');
+      
+      // Show loading state
+      document.getElementById('loading').classList.remove('hidden');
+      document.getElementById('results').classList.add('hidden');
+      document.getElementById('error-message').classList.add('hidden');
+      
+      // Parse CSV file
+      Papa.parse(file, {
+        header: true,
+        dynamicTyping: true,
+        skipEmptyLines: true,
+        complete: function(results) {
+          processParseResults(results);
+        },
+        error: function(error) {
+          showError(`Error parsing CSV: ${error.message}`);
+        }
+      });
+    }
+
+    function cleanData(data) {
+      return data.map(row => {
+        // Convert string percentages to numbers if needed
+        if (typeof row.JOB_RUN_SECONDS === 'string') {
+          row.JOB_RUN_SECONDS = parseFloat(row.JOB_RUN_SECONDS);
+        }
+        if (typeof row.TOTAL_CREDITS === 'string') {
+          row.TOTAL_CREDITS = parseFloat(row.TOTAL_CREDITS);
+        }
+        
+        // Clean utilization data
+        if (typeof row.MEDIAN_CPU_UTILIZATION_PCT === 'string') {
+          row.MEDIAN_CPU_UTILIZATION_PCT = parseFloat(row.MEDIAN_CPU_UTILIZATION_PCT);
+        }
+        if (typeof row.MEDIAN_RAM_UTILIZATION_PCT === 'string') {
+          row.MEDIAN_RAM_UTILIZATION_PCT = parseFloat(row.MEDIAN_RAM_UTILIZATION_PCT);
+        }
+        
+        // Ensure date fields are parsed correctly
+        if (row.JOB_RUN_DATE && typeof row.JOB_RUN_DATE === 'string') {
+          row.JOB_RUN_DATE = new Date(row.JOB_RUN_DATE);
+        }
+        if (row.PIPELINE_CREATED_AT && typeof row.PIPELINE_CREATED_AT === 'string') {
+          row.PIPELINE_CREATED_AT = new Date(row.PIPELINE_CREATED_AT);
+        }
+        
+        // Ensure VCS_BRANCH exists
+        if (!row.VCS_BRANCH) {
+          row.VCS_BRANCH = "unknown";
+        }
+        
+        return row;
+      }).filter(row => {
+        // Filter out rows with missing essential data
+        return row.PROJECT_NAME && 
+               row.JOB_NAME && 
+               row.WORKFLOW_NAME &&
+               !isNaN(row.TOTAL_CREDITS) &&
+               !isNaN(row.JOB_RUN_SECONDS) &&
+               row.JOB_BUILD_STATUS;
+      });
+    }
+
+    function analyzeData() {
+      // Update summary statistics
+      updateSummaryStats();
+      
+      // Update all charts
+      updateProjectsCreditsChart();
+      updateWorkflowsCreditsChart();
+      updateLongestJobsChart();
+      updateResourceClassChart();
+      updateJobsCreditsChart();
+      updateBurnRateChart();
+      updateFailedJobsChart();
+    }
+
+    function updateResourceUtilizationAnalysis() {
+      // Identify underutilized jobs (both CPU and RAM <= 40%)
+      const underutilizedJobs = parsedData.filter(job => {
+        return job.MEDIAN_CPU_UTILIZATION_PCT <= UNDERUTILIZATION_THRESHOLD &&
+               job.MEDIAN_RAM_UTILIZATION_PCT <= UNDERUTILIZATION_THRESHOLD;
+      });
+      
+      // Identify Underprovisioned jobs (either CPU or RAM >= 80%)
+      const overprovisionedJobs = parsedData.filter(job => {
+        return job.MEDIAN_CPU_UTILIZATION_PCT >= OVERPROVISIONING_THRESHOLD ||
+               job.MEDIAN_RAM_UTILIZATION_PCT >= OVERPROVISIONING_THRESHOLD;
+      });
+      
+      // Update underutilized count
+      document.getElementById('underutilized-count').textContent = underutilizedJobs.length.toLocaleString();
+      
+      // Update overprovisioned count
+      document.getElementById('overprovisioned-count').textContent = overprovisionedJobs.length.toLocaleString();
+      
+      // Calculate potential savings
+      // Assuming we could save ~50% of credits for underutilized jobs by right-sizing
+      const potentialSavings = Math.round(underutilizedJobs.reduce((sum, job) => sum + (job.TOTAL_CREDITS * 0.5), 0));
+      document.getElementById('potential-savings').textContent = potentialSavings.toLocaleString();
+      
+      // Update utilization distribution charts
+      updateUtilizationCharts();
+      
+      // Update underutilized jobs table
+      updateUnderutilizedJobsTable(underutilizedJobs);
+      
+      // Update overprovisioned jobs table
+      updateOverprovisionedJobsTable(overprovisionedJobs);
+      
+      // Enable/disable download buttons
+      document.getElementById('download-utilization-report').disabled = underutilizedJobs.length === 0;
+      document.getElementById('download-overprovisioned-report').disabled = overprovisionedJobs.length === 0;
+    }
+    
+    function updateOverprovisionedJobsTable(overprovisionedJobs) {
+      const tableBody = document.getElementById('overprovisioned-jobs-body');
+      const noJobsMessage = document.getElementById('no-overprovisioned-message');
+      
+      // Clear existing rows
+      tableBody.innerHTML = '';
+      
+      if (overprovisionedJobs.length === 0) {
+        // Show "no jobs" message
+        noJobsMessage.classList.remove('hidden');
+        document.getElementById('overprovisioned-jobs-table').classList.add('hidden');
+        return;
+      }
+      
+      // Hide "no jobs" message and show table
+      noJobsMessage.classList.add('hidden');
+      document.getElementById('overprovisioned-jobs-table').classList.remove('hidden');
+      
+      // Group overprovisioned jobs by name/project to calculate averages
+      const jobGroups = {};
+      overprovisionedJobs.forEach(job => {
+        const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
+        if (!jobGroups[key]) {
+          jobGroups[key] = {
+            job_name: job.JOB_NAME,
+            project_name: job.PROJECT_NAME,
+            resource_class: job.RESOURCE_CLASS,
+            total_credits: 0,
+            cpuValues: [],
+            ramValues: [],
+            count: 0
+          };
+        }
+        
+        jobGroups[key].total_credits += job.TOTAL_CREDITS;
+        jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
+        jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
+        jobGroups[key].count++;
+      });
+      
+      // Calculate averages
+      Object.values(jobGroups).forEach(group => {
+        group.avg_cpu = _.mean(group.cpuValues);
+        group.avg_ram = _.mean(group.ramValues);
+        
+        // Determine suggested resource class based on utilization
+        group.suggested_class = getUpgradedResourceClass(group.resource_class, group.avg_cpu, group.avg_ram);
+      });
+      
+      // Sort by highest utilization (using max of CPU and RAM) and get top 10
+      const sortedGroups = Object.values(jobGroups)
+        .sort((a, b) => Math.max(b.avg_cpu, b.avg_ram) - Math.max(a.avg_cpu, a.avg_ram))
+        .slice(0, 10);
+      
+      // Add rows to table
+      sortedGroups.forEach(group => {
+        const row = document.createElement('tr');
+        
+        // Highlight high utilization values
+        const cpuClass = group.avg_cpu >= OVERPROVISIONING_THRESHOLD ? 'text-amber-600 font-medium' : 'text-gray-500';
+        const ramClass = group.avg_ram >= OVERPROVISIONING_THRESHOLD ? 'text-amber-600 font-medium' : 'text-gray-500';
+        
+        // Add cells
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${group.job_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.project_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.resource_class}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm ${cpuClass}">${group.avg_cpu.toFixed(1)}%</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm ${ramClass}">${group.avg_ram.toFixed(1)}%</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.total_credits.toFixed(0)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm ${group.suggested_class !== group.resource_class ? 'text-amber-600 font-medium' : 'text-gray-500'}">${group.suggested_class}</td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+    }
+    
+    function getUpgradedResourceClass(currentClass, cpuUtil, ramUtil) {
+      // Only suggest upgrade if clearly overprovisioned
+      if (cpuUtil < OVERPROVISIONING_THRESHOLD && ramUtil < OVERPROVISIONING_THRESHOLD) {
+        return currentClass;
+      }
+      
+      // Very high utilization (90%+)
+      const isHighUtil = cpuUtil >= 90 || ramUtil >= 90;
+      
+      // For Docker and machine executors
+      if (currentClass.includes('small')) {
+        return 'medium';
+      } else if (currentClass.includes('medium') && !currentClass.includes('medium+')) {
+        return isHighUtil ? 'large' : currentClass + '+';
+      } else if (currentClass.includes('medium+')) {
+        return 'large';
+      } else if (currentClass.includes('large')) {
+        return isHighUtil ? '2xlarge' : 'xlarge';
+      } else if (currentClass.includes('xlarge')) {
+        return '2xlarge';
+      } else if (currentClass.includes('2xlarge') && !currentClass.includes('2xlarge+')) {
+        return '2xlarge+';
+      }
+      
+      // If already at largest size or can't determine pattern
+      return currentClass;
+    }
+    
+    function downloadOverprovisionedReport() {
+      // Identify overprovisioned jobs
+      const overprovisionedJobs = parsedData.filter(job => {
+        return job.MEDIAN_CPU_UTILIZATION_PCT >= OVERPROVISIONING_THRESHOLD ||
+               job.MEDIAN_RAM_UTILIZATION_PCT >= OVERPROVISIONING_THRESHOLD;
+      });
+      
+      if (overprovisionedJobs.length === 0) {
+        alert('No Underprovisioned jobs found.');
+        return;
+      }
+      
+      // Group by job name and project
+      const jobGroups = {};
+      overprovisionedJobs.forEach(job => {
+        const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
+        if (!jobGroups[key]) {
+          jobGroups[key] = {
+            job_name: job.JOB_NAME,
+            project_name: job.PROJECT_NAME,
+            workflow_name: job.WORKFLOW_NAME,
+            resource_class: job.RESOURCE_CLASS,
+            total_credits: 0,
+            total_runs: 0,
+            total_seconds: 0,
+            cpuValues: [],
+            ramValues: [],
+            suggested_class: ''
+          };
+        }
+        
+        jobGroups[key].total_credits += job.TOTAL_CREDITS;
+        jobGroups[key].total_runs += 1;
+        jobGroups[key].total_seconds += job.JOB_RUN_SECONDS;
+        jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
+        jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
+      });
+      
+      // Calculate averages and suggested classes
+      const reportData = Object.values(jobGroups).map(group => {
+        const avg_cpu = _.mean(group.cpuValues);
+        const avg_ram = _.mean(group.ramValues);
+        const suggested_class = getUpgradedResourceClass(group.resource_class, avg_cpu, avg_ram);
+        
+        return {
+          job_name: group.job_name,
+          project_name: group.project_name,
+          workflow_name: group.workflow_name,
+          resource_class: group.resource_class,
+          avg_cpu_pct: avg_cpu.toFixed(1),
+          avg_ram_pct: avg_ram.toFixed(1),
+          total_credits: group.total_credits.toFixed(0),
+          total_runs: group.total_runs,
+          avg_seconds_per_run: (group.total_seconds / group.total_runs).toFixed(1),
+          suggested_class: suggested_class,
+          bottleneck: avg_cpu > avg_ram ? 'CPU' : 'RAM'
+        };
+      });
+      
+      // Sort by highest utilization 
+      reportData.sort((a, b) => {
+        const maxA = Math.max(parseFloat(a.avg_cpu_pct), parseFloat(a.avg_ram_pct));
+        const maxB = Math.max(parseFloat(b.avg_cpu_pct), parseFloat(b.avg_ram_pct));
+        return maxB - maxA;
+      });
+      
+      // Convert to CSV
+      const csv = Papa.unparse(reportData);
+      
+      // Create download link
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-overprovisioned-jobs.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function updateUtilizationCharts() {
+      // CPU Utilization Distribution
+      updateUtilizationDistributionChart('cpu-utilization-chart', 'MEDIAN_CPU_UTILIZATION_PCT', 'CPU Utilization %', 'rgba(59, 130, 246, 0.6)', 'rgba(59, 130, 246, 1)');
+      
+      // RAM Utilization Distribution
+      updateUtilizationDistributionChart('ram-utilization-chart', 'MEDIAN_RAM_UTILIZATION_PCT', 'RAM Utilization %', 'rgba(16, 185, 129, 0.6)', 'rgba(16, 185, 129, 1)');
+    }
+
+    function updateUtilizationDistributionChart(chartId, dataField, label, backgroundColor, borderColor) {
+      const ctx = document.getElementById(chartId).getContext('2d');
+      
+      // Create distribution buckets (0-10%, 10-20%, etc.)
+      const buckets = [
+        { min: 0, max: 10, label: '0-10%' },
+        { min: 10, max: 20, label: '10-20%' },
+        { min: 20, max: 30, label: '20-30%' },
+        { min: 30, max: 40, label: '30-40%' },
+        { min: 40, max: 50, label: '40-50%' },
+        { min: 50, max: 60, label: '50-60%' },
+        { min: 60, max: 70, label: '60-70%' },
+        { min: 70, max: 80, label: '70-80%' },
+        { min: 80, max: 90, label: '80-90%' },
+        { min: 90, max: 100, label: '90-100%' }
+      ];
+      
+      // Count jobs in each bucket
+      const counts = Array(buckets.length).fill(0);
+      parsedData.forEach(job => {
+        const value = job[dataField];
+        if (value !== undefined && value !== null) {
+          for (let i = 0; i < buckets.length; i++) {
+            if (value > buckets[i].min && value <= buckets[i].max) {
+              counts[i]++;
+              break;
+            }
+            // Handle special case for 0
+            if (value === 0 && buckets[i].min === 0) {
+              counts[i]++;
+              break;
+            }
+          }
+        }
+      });
+      
+      // Destroy existing chart if it exists
+      if (chartId === 'cpu-utilization-chart' && cpuUtilizationChart) {
+        cpuUtilizationChart.destroy();
+      } else if (chartId === 'ram-utilization-chart' && ramUtilizationChart) {
+        ramUtilizationChart.destroy();
+      }
+      
+      // Create new chart
+      const chart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: buckets.map(b => b.label),
+          datasets: [{
+            label: label,
+            data: counts,
+            backgroundColor: backgroundColor,
+            borderColor: borderColor,
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Jobs: ${context.raw}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Number of Jobs'
+              }
+            }
+          }
+        }
+      });
+      
+      // Store chart reference
+      if (chartId === 'cpu-utilization-chart') {
+        cpuUtilizationChart = chart;
+      } else if (chartId === 'ram-utilization-chart') {
+        ramUtilizationChart = chart;
+      }
+    }
+
+    function updateUnderutilizedJobsTable(underutilizedJobs) {
+      const tableBody = document.getElementById('underutilized-jobs-body');
+      const noJobsMessage = document.getElementById('no-underutilized-message');
+      
+      // Clear existing rows
+      tableBody.innerHTML = '';
+      
+      if (underutilizedJobs.length === 0) {
+        // Show "no jobs" message
+        noJobsMessage.classList.remove('hidden');
+        document.getElementById('underutilized-jobs-table').classList.add('hidden');
+        return;
+      }
+      
+      // Hide "no jobs" message and show table
+      noJobsMessage.classList.add('hidden');
+      document.getElementById('underutilized-jobs-table').classList.remove('hidden');
+      
+      // Group underutilized jobs by name/project to calculate averages
+      const jobGroups = {};
+      underutilizedJobs.forEach(job => {
+        const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
+        if (!jobGroups[key]) {
+          jobGroups[key] = {
+            job_name: job.JOB_NAME,
+            project_name: job.PROJECT_NAME,
+            resource_class: job.RESOURCE_CLASS,
+            total_credits: 0,
+            cpuValues: [],
+            ramValues: [],
+            count: 0
+          };
+        }
+        
+        jobGroups[key].total_credits += job.TOTAL_CREDITS;
+        jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
+        jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
+        jobGroups[key].count++;
+      });
+      
+      // Calculate averages
+      Object.values(jobGroups).forEach(group => {
+        group.avg_cpu = _.mean(group.cpuValues);
+        group.avg_ram = _.mean(group.ramValues);
+        
+        // Determine suggested resource class based on utilization
+        group.suggested_class = getSuggestedResourceClass(group.resource_class, group.avg_cpu, group.avg_ram);
+      });
+      
+      // Sort by total credits (highest first) and get top 10
+      const sortedGroups = Object.values(jobGroups)
+        .sort((a, b) => b.total_credits - a.total_credits)
+        .slice(0, 10);
+      
+      // Add rows to table
+      sortedGroups.forEach(group => {
+        const row = document.createElement('tr');
+        
+        // Add cells
+        row.innerHTML = `
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${group.job_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.project_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.resource_class}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.avg_cpu.toFixed(1)}%</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.avg_ram.toFixed(1)}%</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.total_credits.toFixed(0)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm ${group.suggested_class !== group.resource_class ? 'text-green-600 font-medium' : 'text-gray-500'}">${group.suggested_class}</td>
+        `;
+        
+        tableBody.appendChild(row);
+      });
+    }
+
+    function getSuggestedResourceClass(currentClass, cpuUtil, ramUtil) {
+      // This is a placeholder function - in real implementation, you would adjust based on
+      // the specific CircleCI resource classes used in your organization
+      
+      // Standard CircleCI resource class patterns
+      // Docker: small, medium, large, xlarge, 2xlarge, 2xlarge+
+      // Linux VM: medium, large, xlarge, 2xlarge
+      // macOS: medium, large, xlarge, 2xlarge
+      // Windows: medium, large, xlarge, 2xlarge
+      // GPU: medium+, large, xlarge, 2xlarge
+      
+      // Only suggest downgrade if clearly underutilized
+      if (cpuUtil > UNDERUTILIZATION_THRESHOLD || ramUtil > UNDERUTILIZATION_THRESHOLD) {
+        return currentClass;
+      }
+      
+      // Very underutilized resources
+      const isVeryUnderutilized = cpuUtil <= 30 && ramUtil <= 30;
+      
+      // For Docker and machine executors
+      if (currentClass.includes('2xlarge+')) {
+        return isVeryUnderutilized ? 'xlarge' : '2xlarge';
+      } else if (currentClass.includes('2xlarge')) {
+        return isVeryUnderutilized ? 'large' : 'xlarge';
+      } else if (currentClass.includes('xlarge')) {
+        return isVeryUnderutilized ? 'medium' : 'large';
+      } else if (currentClass.includes('large')) {
+        return 'medium';
+      } else if (currentClass.includes('medium+')) {
+        return 'medium';
+      } else if (currentClass.includes('medium')) {
+        return 'small';
+      }
+      
+      // If we can't determine a better class or already at smallest size
+      return currentClass;
+    }
+
+    function downloadUtilizationReport() {
+      // Identify underutilized jobs
+      const underutilizedJobs = parsedData.filter(job => {
+        return job.MEDIAN_CPU_UTILIZATION_PCT <= UNDERUTILIZATION_THRESHOLD &&
+               job.MEDIAN_RAM_UTILIZATION_PCT <= UNDERUTILIZATION_THRESHOLD;
+      });
+      
+      if (underutilizedJobs.length === 0) {
+        alert('No underutilized jobs found.');
+        return;
+      }
+      
+      // Group by job name and project
+      const jobGroups = {};
+      underutilizedJobs.forEach(job => {
+        const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
+        if (!jobGroups[key]) {
+          jobGroups[key] = {
+            job_name: job.JOB_NAME,
+            project_name: job.PROJECT_NAME,
+            workflow_name: job.WORKFLOW_NAME,
+            resource_class: job.RESOURCE_CLASS,
+            total_credits: 0,
+            total_runs: 0,
+            total_seconds: 0,
+            cpuValues: [],
+            ramValues: [],
+            suggested_class: ''
+          };
+        }
+        
+        jobGroups[key].total_credits += job.TOTAL_CREDITS;
+        jobGroups[key].total_runs += 1;
+        jobGroups[key].total_seconds += job.JOB_RUN_SECONDS;
+        jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
+        jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
+      });
+      
+      // Calculate averages and suggested classes
+      const reportData = Object.values(jobGroups).map(group => {
+        const avg_cpu = _.mean(group.cpuValues);
+        const avg_ram = _.mean(group.ramValues);
+        const suggested_class = getSuggestedResourceClass(group.resource_class, avg_cpu, avg_ram);
+        const estimated_savings = suggested_class !== group.resource_class ? 
+          Math.round(group.total_credits * 0.5) : 0;
+        
+        return {
+          job_name: group.job_name,
+          project_name: group.project_name,
+          workflow_name: group.workflow_name,
+          resource_class: group.resource_class,
+          avg_cpu_pct: avg_cpu.toFixed(1),
+          avg_ram_pct: avg_ram.toFixed(1),
+          total_credits: group.total_credits.toFixed(0),
+          total_runs: group.total_runs,
+          avg_seconds_per_run: (group.total_seconds / group.total_runs).toFixed(1),
+          suggested_class: suggested_class,
+          estimated_credit_savings: estimated_savings
+        };
+      });
+      
+      // Sort by potential savings
+      reportData.sort((a, b) => parseFloat(b.total_credits) - parseFloat(a.total_credits));
+      
+      // Convert to CSV
+      const csv = Papa.unparse(reportData);
+      
+      // Create download link
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-underutilized-jobs.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function updateSummaryStats() {
+      // Total jobs
+      document.getElementById('total-jobs').textContent = parsedData.length.toLocaleString();
+      
+      // Total credits
+      const totalCredits = parsedData.reduce((sum, job) => sum + (job.TOTAL_CREDITS || 0), 0);
+      document.getElementById('total-credits').textContent = totalCredits.toLocaleString(undefined, {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 0
+      });
+      
+      // Success rate
+      const successfulJobs = parsedData.filter(job => job.JOB_BUILD_STATUS === 'success').length;
+      const successRate = (successfulJobs / parsedData.length) * 100;
+      document.getElementById('success-rate').textContent = successRate.toFixed(1) + '%';
+      
+      // Average duration
+      const avgDuration = _.meanBy(parsedData, 'JOB_RUN_SECONDS');
+      document.getElementById('avg-duration').textContent = formatDuration(avgDuration);
+    }
+
+    function updateProjectsCreditsChart() {
+      const ctx = document.getElementById('projects-credits-chart').getContext('2d');
+      
+      // Calculate credits by project
+      const creditsByProject = {};
+      parsedData.forEach(job => {
+        creditsByProject[job.PROJECT_NAME] = (creditsByProject[job.PROJECT_NAME] || 0) + job.TOTAL_CREDITS;
+      });
+      
+      // Sort and take top 10
+      const sortedProjects = Object.entries(creditsByProject)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      const labels = sortedProjects.map(entry => entry[0]);
+      const data = sortedProjects.map(entry => entry[1]);
+      
+      // Destroy existing chart if it exists
+      if (projectsCreditsChart) {
+        projectsCreditsChart.destroy();
+      }
+      
+      // Create new chart
+      projectsCreditsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Credits Used',
+            data: data,
+            backgroundColor: 'rgba(59, 130, 246, 0.6)',
+            borderColor: 'rgba(59, 130, 246, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Credits: ${context.raw.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateWorkflowsCreditsChart() {
+      const ctx = document.getElementById('workflows-credits-chart').getContext('2d');
+      
+      // Calculate credits by workflow (with project name)
+      const creditsByWorkflow = {};
+      parsedData.forEach(job => {
+        const key = `${job.WORKFLOW_NAME} (${job.PROJECT_NAME})`;
+        creditsByWorkflow[key] = (creditsByWorkflow[key] || 0) + job.TOTAL_CREDITS;
+      });
+      
+      // Sort and take top 10
+      const sortedWorkflows = Object.entries(creditsByWorkflow)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      const labels = sortedWorkflows.map(entry => entry[0]);
+      const data = sortedWorkflows.map(entry => entry[1]);
+      
+      // Destroy existing chart if it exists
+      if (workflowsCreditsChart) {
+        workflowsCreditsChart.destroy();
+      }
+      
+      // Create new chart
+      workflowsCreditsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Credits Used',
+            data: data,
+            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+            borderColor: 'rgba(16, 185, 129, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Credits: ${context.raw.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateLongestJobsChart() {
+      const ctx = document.getElementById('longest-jobs-chart').getContext('2d');
+      
+      // Calculate average duration by job
+      const jobDurations = {};
+      const jobCounts = {};
+      
+      parsedData.forEach(job => {
+        const key = `${job.JOB_NAME} (${job.PROJECT_NAME})`;
+        if (!jobDurations[key]) {
+          jobDurations[key] = 0;
+          jobCounts[key] = 0;
+        }
+        jobDurations[key] += job.JOB_RUN_SECONDS;
+        jobCounts[key] += 1;
+      });
+      
+      // Calculate averages
+      const avgDurations = {};
+      Object.keys(jobDurations).forEach(key => {
+        avgDurations[key] = jobDurations[key] / jobCounts[key];
+      });
+      
+      // Sort and take top 10
+      const sortedJobs = Object.entries(avgDurations)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      const labels = sortedJobs.map(entry => entry[0]);
+      const data = sortedJobs.map(entry => entry[1]);
+      
+      // Destroy existing chart if it exists
+      if (longestJobsChart) {
+        longestJobsChart.destroy();
+      }
+      
+      // Create new chart
+      longestJobsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Average Duration (seconds)',
+            data: data,
+            backgroundColor: 'rgba(124, 58, 237, 0.6)',
+            borderColor: 'rgba(124, 58, 237, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Avg. Duration: ${formatDuration(context.raw)}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateJobsCreditsChart() {
+      const ctx = document.getElementById('jobs-credits-chart').getContext('2d');
+      
+      // Calculate credits by job (with project name)
+      const creditsByJob = {};
+      parsedData.forEach(job => {
+        const key = `${job.JOB_NAME} (${job.PROJECT_NAME})`;
+        creditsByJob[key] = (creditsByJob[key] || 0) + job.TOTAL_CREDITS;
+      });
+      
+      // Sort and take top 10
+      const sortedJobs = Object.entries(creditsByJob)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      const labels = sortedJobs.map(entry => entry[0]);
+      const data = sortedJobs.map(entry => entry[1]);
+      
+      // Destroy existing chart if it exists
+      if (jobsCreditsChart) {
+        jobsCreditsChart.destroy();
+      }
+      
+      // Create new chart
+      jobsCreditsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Credits Used',
+            data: data,
+            backgroundColor: 'rgba(79, 70, 229, 0.6)',
+            borderColor: 'rgba(79, 70, 229, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Credits: ${context.raw.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateResourceClassChart() {
+      const ctx = document.getElementById('resource-class-chart').getContext('2d');
+      
+      // Calculate credits by resource class
+      const creditsByClass = {};
+      parsedData.forEach(job => {
+        creditsByClass[job.RESOURCE_CLASS] = (creditsByClass[job.RESOURCE_CLASS] || 0) + job.TOTAL_CREDITS;
+      });
+      
+      // Sort by credits
+      const sortedClasses = Object.entries(creditsByClass)
+        .sort((a, b) => b[1] - a[1]);
+      
+      const labels = sortedClasses.map(entry => entry[0]);
+      const data = sortedClasses.map(entry => entry[1]);
+      
+      // Destroy existing chart if it exists
+      if (resourceClassChart) {
+        resourceClassChart.destroy();
+      }
+      
+      // Create new chart
+      resourceClassChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Credits Used',
+            data: data,
+            backgroundColor: 'rgba(245, 158, 11, 0.6)',
+            borderColor: 'rgba(245, 158, 11, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Credits: ${context.raw.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateBurnRateChart() {
+      const ctx = document.getElementById('burn-rate-chart').getContext('2d');
+      
+      // Prepare data by date
+      let creditsByDate = {};
+      
+      if (showDaily) {
+        // Daily burn rate
+        parsedData.forEach(job => {
+          if (!job.JOB_RUN_DATE) return;
+          
+          const dateStr = job.JOB_RUN_DATE instanceof Date ? 
+            formatDate(job.JOB_RUN_DATE) : 
+            (typeof job.JOB_RUN_DATE === 'string' ? job.JOB_RUN_DATE : null);
+          
+          if (dateStr) {
+            creditsByDate[dateStr] = (creditsByDate[dateStr] || 0) + job.TOTAL_CREDITS;
+          }
+        });
+      } else {
+        // Weekly burn rate
+        parsedData.forEach(job => {
+          if (!job.JOB_RUN_DATE) return;
+          
+          const date = job.JOB_RUN_DATE instanceof Date ? 
+            job.JOB_RUN_DATE : 
+            (typeof job.JOB_RUN_DATE === 'string' ? new Date(job.JOB_RUN_DATE) : null);
+          
+          if (date) {
+            const weekStart = getWeekStart(date);
+            const weekStr = formatDate(weekStart);
+            creditsByDate[weekStr] = (creditsByDate[weekStr] || 0) + job.TOTAL_CREDITS;
+          }
+        });
+      }
+      
+      // Sort dates
+      const sortedDates = Object.keys(creditsByDate).sort();
+      const data = sortedDates.map(date => creditsByDate[date]);
+      
+      // Destroy existing chart if it exists
+      if (burnRateChart) {
+        burnRateChart.destroy();
+      }
+      
+      // Create new chart
+      burnRateChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: sortedDates,
+          datasets: [{
+            label: showDaily ? 'Daily Credits' : 'Weekly Credits',
+            data: data,
+            backgroundColor: 'rgba(6, 182, 212, 0.2)',
+            borderColor: 'rgba(6, 182, 212, 1)',
+            borderWidth: 2,
+            tension: 0.1,
+            fill: true
+          }]
+        },
+        options: {
+          responsive: true,
+          plugins: {
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Credits: ${context.raw.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`;
+                }
+              }
+            }
+          },
+          scales: {
+            y: {
+              beginAtZero: true,
+              title: {
+                display: true,
+                text: 'Credits Used'
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateFailedJobsChart() {
+      const ctx = document.getElementById('failed-jobs-chart').getContext('2d');
+      
+      // Get failed jobs
+      const failedJobs = parsedData.filter(job => job.JOB_BUILD_STATUS === 'failed');
+      
+      // Calculate credits by job
+      const creditsByJob = {};
+      failedJobs.forEach(job => {
+        const key = `${job.JOB_NAME} (${job.PROJECT_NAME})`;
+        creditsByJob[key] = (creditsByJob[key] || 0) + job.TOTAL_CREDITS;
+      });
+      
+      // Sort and take top 10
+      const sortedJobs = Object.entries(creditsByJob)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 10);
+      
+      const labels = sortedJobs.map(entry => entry[0]);
+      const data = sortedJobs.map(entry => entry[1]);
+      
+      // Destroy existing chart if it exists
+      if (failedJobsChart) {
+        failedJobsChart.destroy();
+      }
+      
+      // Create new chart
+      failedJobsChart = new Chart(ctx, {
+        type: 'bar',
+        data: {
+          labels: labels,
+          datasets: [{
+            label: 'Credits Wasted',
+            data: data,
+            backgroundColor: 'rgba(239, 68, 68, 0.6)',
+            borderColor: 'rgba(239, 68, 68, 1)',
+            borderWidth: 1
+          }]
+        },
+        options: {
+          indexAxis: 'y',
+          responsive: true,
+          plugins: {
+            legend: {
+              display: false
+            },
+            tooltip: {
+              callbacks: {
+                label: function(context) {
+                  return `Credits: ${context.raw.toLocaleString(undefined, {
+                    minimumFractionDigits: 0,
+                    maximumFractionDigits: 0
+                  })}`;
+                }
+              }
+            }
+          }
+        }
+      });
+    }
+
+    function updateBurnRateToggle() {
+      if (showDaily) {
+        document.getElementById('daily-toggle').classList.remove('bg-gray-200', 'text-gray-700');
+        document.getElementById('daily-toggle').classList.add('bg-blue-600', 'text-white');
+        document.getElementById('weekly-toggle').classList.remove('bg-blue-600', 'text-white');
+        document.getElementById('weekly-toggle').classList.add('bg-gray-200', 'text-gray-700');
+      } else {
+        document.getElementById('weekly-toggle').classList.remove('bg-gray-200', 'text-gray-700');
+        document.getElementById('weekly-toggle').classList.add('bg-blue-600', 'text-white');
+        document.getElementById('daily-toggle').classList.remove('bg-blue-600', 'text-white');
+        document.getElementById('daily-toggle').classList.add('bg-gray-200', 'text-gray-700');
+      }
+    }
+
+    function downloadReport() {
+      // Create summary data by project
+      const projectSummary = {};
+      
+      parsedData.forEach(job => {
+        if (!projectSummary[job.PROJECT_NAME]) {
+          projectSummary[job.PROJECT_NAME] = {
+            project_name: job.PROJECT_NAME,
+            total_credits: 0,
+            total_jobs: 0,
+            successful_jobs: 0,
+            failed_jobs: 0,
+            total_run_time: 0,
+            avg_job_time: 0,
+            top_resource_class: '',
+            resource_class_credits: 0
+          };
+        }
+        
+        const summary = projectSummary[job.PROJECT_NAME];
+        summary.total_credits += job.TOTAL_CREDITS;
+        summary.total_jobs += 1;
+        if (job.JOB_BUILD_STATUS === 'success') {
+          summary.successful_jobs += 1;
+        } else if (job.JOB_BUILD_STATUS === 'failed') {
+          summary.failed_jobs += 1;
+        }
+        summary.total_run_time += job.JOB_RUN_SECONDS;
+        
+        // Track resource class usage
+        const resourceKey = `resource_class_${job.RESOURCE_CLASS}`;
+        if (!summary[resourceKey]) {
+          summary[resourceKey] = 0;
+        }
+        summary[resourceKey] += job.TOTAL_CREDITS;
+        
+        if (summary[resourceKey] > summary.resource_class_credits) {
+          summary.top_resource_class = job.RESOURCE_CLASS;
+          summary.resource_class_credits = summary[resourceKey];
+        }
+      });
+      
+      // Calculate averages
+      Object.values(projectSummary).forEach(summary => {
+        summary.avg_job_time = summary.total_run_time / summary.total_jobs;
+        summary.success_rate = (summary.successful_jobs / summary.total_jobs) * 100;
+        
+        // Format for CSV
+        summary.avg_job_time = summary.avg_job_time.toFixed(1);
+        summary.success_rate = summary.success_rate.toFixed(1) + '%';
+        summary.total_credits = summary.total_credits.toFixed(0);
+      });
+      
+      // Convert to array
+      const reportData = Object.values(projectSummary);
+      
+      // Sort by total credits
+      reportData.sort((a, b) => parseFloat(b.total_credits) - parseFloat(a.total_credits));
+      
+      // Convert to CSV
+      const csv = Papa.unparse(reportData);
+      
+      // Create download link
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', 'circleci-usage-report.csv');
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+    }
+
+    function formatDuration(seconds) {
+      if (!seconds) return '—';
+      
+      const hours = Math.floor(seconds / 3600);
+      const minutes = Math.floor((seconds % 3600) / 60);
+      const remainingSeconds = Math.floor(seconds % 60);
+      
+      if (hours > 0) {
+        return `${hours}h ${minutes}m ${remainingSeconds}s`;
+      } else if (minutes > 0) {
+        return `${minutes}m ${remainingSeconds}s`;
+      } else {
+        return `${remainingSeconds}s`;
+      }
+    }
+
+    function formatDate(date) {
+      if (!date) return '';
+      const d = new Date(date);
+      return `${d.getFullYear()}-${(d.getMonth() + 1).toString().padStart(2, '0')}-${d.getDate().toString().padStart(2, '0')}`;
+    }
+
+    function getWeekStart(date) {
+      const d = new Date(date);
+      const day = d.getDay();
+      const diff = d.getDate() - day + (day === 0 ? -6 : 1); // Adjust for Sunday
+      return new Date(d.setDate(diff));
+    }
+
+    function showError(message) {
+      const errorElement = document.getElementById('error-message');
+      errorElement.textContent = message;
+      errorElement.classList.remove('hidden');
+      document.getElementById('loading').classList.add('hidden');
+    }
+  </script>
+</body>
+</html>

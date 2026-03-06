@@ -1,0 +1,15 @@
+*.csv
+*.csv.gz
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+.vscode/
+.idea/
+*.swp
+*.swo
+*.log
+
+# Local utility scripts — not for distribution
+push-update.sh
