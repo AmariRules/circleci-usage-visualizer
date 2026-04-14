@@ -140,10 +140,24 @@
           <div style="position:relative;height:360px"><canvas id="gen2-savings-chart"></canvas></div>
         </div>
         <div class="border-t border-gray-100 overflow-hidden">
-          <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
+          <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex flex-wrap justify-between items-center gap-2">
             <h3 class="font-semibold text-gray-700 text-sm">Resource Classes Currently Available for Gen2 Optimization</h3>
-            <div class="flex items-center gap-3">
-              <span class="text-xs text-gray-400">Sorted by highest credit consumption · Top 10</span>
+            <div class="flex items-center gap-3 flex-wrap">
+              <span id="gen2-table-count" class="text-xs text-gray-400">Sorted by highest credit consumption · Top 10</span>
+              <div id="gen2-filter-buttons" class="hidden flex items-center gap-1.5">
+                <button id="gen2-filter-all" onclick="applyGen2Filter('all')"
+                  class="text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-gray-800 text-white">
+                  All
+                </button>
+                <button id="gen2-filter-recommended" onclick="applyGen2Filter('recommended')"
+                  class="text-xs px-3 py-1 rounded font-medium border border-green-300 bg-white text-green-700 hover:bg-green-50">
+                  ✅ Recommended
+                </button>
+                <button id="gen2-filter-review" onclick="applyGen2Filter('review')"
+                  class="text-xs px-3 py-1 rounded font-medium border border-amber-300 bg-white text-amber-700 hover:bg-amber-50">
+                  ⚠ Needs Review
+                </button>
+              </div>
               <button id="gen2-download-csv" class="hidden text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
                 ⬇ Download Full CSV
               </button>
@@ -684,26 +698,95 @@
     // ── updateGen2Analysis ────────────────────────────────────────────────────
     // Stores full opps array for CSV download
     var gen2AllOpportunities = [];
+    var gen2CurrentFilter = 'all';
+
+    // Classify each opportunity as 'recommended' or 'review'
+    function classifyGen2Opp(o) {
+      // Recommended: cheaper rate, net-positive speed offset, or GPU upgrade
+      if (o.migration_type === 'gpu-gen2') return 'recommended';
+      if (o.pct_change <= 0) return 'recommended';                       // xlarge/2xlarge — cheaper
+      if (o.speed_proj && o.speed_proj.is_net_positive) return 'recommended'; // speed offsets cost
+      return 'review'; // costs more and speed doesn't fully offset
+    }
+
+    function applyGen2Filter(filter) {
+      gen2CurrentFilter = filter;
+      var opps = gen2AllOpportunities;
+
+      // Apply filter
+      var filtered;
+      if (filter === 'recommended') {
+        filtered = opps.filter(function(o) { return classifyGen2Opp(o) === 'recommended'; });
+      } else if (filter === 'review') {
+        filtered = opps.filter(function(o) { return classifyGen2Opp(o) === 'review'; });
+      } else {
+        filtered = opps;
+      }
+
+      // Update button active states
+      ['all', 'recommended', 'review'].forEach(function(f) {
+        var btn = document.getElementById('gen2-filter-' + f);
+        if (!btn) return;
+        if (f === filter) {
+          if (f === 'all') {
+            btn.className = 'text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-gray-800 text-white';
+          } else if (f === 'recommended') {
+            btn.className = 'text-xs px-3 py-1 rounded font-medium border border-green-500 bg-green-600 text-white';
+          } else {
+            btn.className = 'text-xs px-3 py-1 rounded font-medium border border-amber-500 bg-amber-500 text-white';
+          }
+        } else {
+          if (f === 'all') {
+            btn.className = 'text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-white text-gray-600 hover:bg-gray-50';
+          } else if (f === 'recommended') {
+            btn.className = 'text-xs px-3 py-1 rounded font-medium border border-green-300 bg-white text-green-700 hover:bg-green-50';
+          } else {
+            btn.className = 'text-xs px-3 py-1 rounded font-medium border border-amber-300 bg-white text-amber-700 hover:bg-amber-50';
+          }
+        }
+      });
+
+      // Count for label
+      var countLabel = filtered.length + ' of ' + opps.length + ' job groups';
+      if (filter === 'recommended') countLabel += ' · true candidates';
+      else if (filter === 'review') countLabel += ' · needs review';
+      else countLabel = 'Sorted by highest credit consumption · Top 10';
+      document.getElementById('gen2-table-count').textContent = countLabel;
+
+      // Re-render chart and table with filtered data (top 10 of filtered set)
+      renderGen2SavingsChart(filtered.slice(0, 10));
+      renderGen2Table(filtered.slice(0, 10));
+    }
 
     function updateGen2Analysis() {
       var result = analyzeGen2Opportunities(parsedData);
       var opps   = result.opportunities;
       gen2AllOpportunities = opps; // store for CSV download
+      gen2CurrentFilter = 'all';
 
       // Summary cards
       var savesCount = opps.filter(function(o){ return o.savings_pct > 0; }).length;
       var costsMoreCount = opps.filter(function(o){ return o.savings_pct < 0; }).length;
+      var recCount = opps.filter(function(o){ return classifyGen2Opp(o) === 'recommended'; }).length;
       document.getElementById('gen2-eligible-count').textContent =
         opps.length.toLocaleString() + ' job groups';
       document.getElementById('gen2-total-savings').textContent =
-        savesCount + ' save · ' + costsMoreCount + ' cost more';
+        recCount + ' recommended · ' + (opps.length - recCount) + ' needs review';
       document.getElementById('gen2-already-count').textContent =
         result.already_gen2_count.toLocaleString();
 
-      // Render charts — skip speed chart (Arm-specific, removed)
-      renderGen2SavingsChart(opps.slice(0, 10));
+      // Show filter buttons if there are opportunities
+      var filterBtns = document.getElementById('gen2-filter-buttons');
+      if (filterBtns) filterBtns.classList.toggle('hidden', opps.length === 0);
 
-      // Render table — top 10 only
+      // Update recommended/review button counts
+      var recBtn = document.getElementById('gen2-filter-recommended');
+      var revBtn = document.getElementById('gen2-filter-review');
+      if (recBtn) recBtn.textContent = '✅ Recommended (' + recCount + ')';
+      if (revBtn) revBtn.textContent = '⚠ Needs Review (' + (opps.length - recCount) + ')';
+
+      // Render charts and table
+      renderGen2SavingsChart(opps.slice(0, 10));
       renderGen2Table(opps.slice(0, 10));
 
       // Show/hide download button
