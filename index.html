@@ -471,6 +471,10 @@
       'machine:large':   { cpm:20,  cpu:4,  ram:15  },
       'machine:xlarge':  { cpm:40,  cpu:8,  ram:31  },
       'machine:2xlarge': { cpm:80,  cpu:16, ram:63  },
+      // macOS Apple Silicon (M4 Pro)
+      'm4pro.medium':    { cpm:150, cpu:12, ram:24  },
+      'm4pro.large':     { cpm:300, cpu:12, ram:48  },
+      'm4pro.xlarge':    { cpm:600, cpu:12, ram:48  },
     };
 
     const GEN2_RESOURCES = {
@@ -2078,25 +2082,33 @@
     }
 
     function getSuggestedResourceClass(currentClass, cpuUtil, ramUtil) {
-      // This is a placeholder function - in real implementation, you would adjust based on
-      // the specific CircleCI resource classes used in your organization
-      
-      // Standard CircleCI resource class patterns
-      // Docker: small, medium, large, xlarge, 2xlarge, 2xlarge+
-      // Linux VM: medium, large, xlarge, 2xlarge
-      // macOS: medium, large, xlarge, 2xlarge
-      // Windows: medium, large, xlarge, 2xlarge
-      // GPU: medium+, large, xlarge, 2xlarge
-      
       // Only suggest downgrade if clearly underutilized
       if (cpuUtil > UNDERUTILIZATION_THRESHOLD || ramUtil > UNDERUTILIZATION_THRESHOLD) {
         return currentClass;
       }
-      
-      // Very underutilized resources
+
       const isVeryUnderutilized = cpuUtil <= 30 && ramUtil <= 30;
-      
-      // For Docker and machine executors
+
+      // ── macOS classes ─────────────────────────────────────────────────
+      // Apple Silicon: m4pro.medium (floor), m4pro.large, m4pro.xlarge
+      // Legacy Intel:  macos.m1.medium.gen1, macos.x86.medium.gen1, etc.
+      // m4pro.medium is the SMALLEST available mac class — cannot downsize further
+      const isMac = currentClass.startsWith('m4pro.') || currentClass.startsWith('m2pro.') ||
+                    currentClass.startsWith('m1.') || currentClass.startsWith('macos.');
+      if (isMac) {
+        // Identify the size suffix
+        if (currentClass.includes('2xlarge')) {
+          return currentClass.replace('2xlarge', isVeryUnderutilized ? 'large' : 'xlarge');
+        } else if (currentClass.includes('xlarge')) {
+          return currentClass.replace('xlarge', isVeryUnderutilized ? 'medium' : 'large');
+        } else if (currentClass.includes('large') && !currentClass.includes('xlarge')) {
+          return currentClass.replace('large', 'medium');
+        }
+        // Already at medium (smallest mac class) — no downsize possible
+        return currentClass;
+      }
+
+      // ── Docker / Linux VM / Windows / GPU classes ─────────────────────
       if (currentClass.includes('2xlarge+')) {
         return isVeryUnderutilized ? 'xlarge' : '2xlarge';
       } else if (currentClass.includes('2xlarge')) {
@@ -2110,8 +2122,8 @@
       } else if (currentClass.includes('medium')) {
         return 'small';
       }
-      
-      // If we can't determine a better class or already at smallest size
+
+      // Already at smallest size or unknown pattern
       return currentClass;
     }
 
