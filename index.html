@@ -67,92 +67,132 @@
           <h3 class="text-sm font-medium text-gray-500">Avg. Job Duration</h3>
           <p id="avg-duration" class="mt-1 text-2xl font-semibold text-gray-900">0s</p>
         </div>
-      
+      </div>
+
       <!-- ⚡ GEN2 RESOURCE ANALYSIS SECTION ⚡ -->
       <div id="gen2-analysis-section" class="hidden mb-8 bg-white rounded-lg shadow overflow-hidden">
         <div class="px-6 py-4 text-white" style="background:linear-gradient(135deg,#0d1b2a,#1a3a5c)">
           <div class="flex items-start justify-between flex-wrap gap-2">
             <div>
-              <h2 class="text-xl font-bold tracking-tight">⚡ Gen2 Resource Opportunities</h2>
+              <h2 class="text-xl font-bold tracking-tight">⚡ Resource Classes Available for Gen2 Optimization</h2>
               <p class="text-sm mt-1" style="color:#90b8d4">
-                Jobs eligible to migrate from Gen1 (x86 Docker/Machine) to Gen2 (Arm Graviton).
+                Jobs eligible to migrate from Gen1 to Gen2 — includes Arm (Docker/Machine) and LinuxVM Gen2 (x86).
                 Standard CircleCI pricing — verify against your plan.
               </p>
             </div>
             <span class="text-xs px-2 py-1 rounded self-start mt-1 font-semibold whitespace-nowrap" style="background:#00b140;color:#fff">Arm = 40% cheaper/min</span>
           </div>
         </div>
+
+        <!-- LinuxVM Gen2 Pricing Comparison -->
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <h3 class="font-semibold text-gray-700 text-sm">LinuxVM Gen2 (x86) — Credit Rate Comparison</h3>
+            <a href="https://circleci.com/docs/reference/configuration-reference/#linuxvm-gen2-execution-environment" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">View Gen2 Docs →</a>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">Machine &amp; Remote Docker only. Gen2 VMs have faster CPUs with improved single-thread performance. xlarge+ sizes are <strong class="text-green-600">cheaper</strong> on Gen2.</p>
+          <div class="overflow-x-auto">
+            <table class="text-xs w-full max-w-lg">
+              <thead>
+                <tr class="border-b border-gray-200">
+                  <th class="px-3 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen1 (cr/min)</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen2 (cr/min)</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr><td class="px-3 py-1.5 font-mono">medium</td><td class="px-3 py-1.5 text-right">10</td><td class="px-3 py-1.5 text-right">18</td><td class="px-3 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">large</td><td class="px-3 py-1.5 text-right">20</td><td class="px-3 py-1.5 text-right">36</td><td class="px-3 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">xlarge</td><td class="px-3 py-1.5 text-right">40</td><td class="px-3 py-1.5 text-right">29</td><td class="px-3 py-1.5 text-right text-green-600 font-semibold">-28%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">2xlarge</td><td class="px-3 py-1.5 text-right">80</td><td class="px-3 py-1.5 text-right">77</td><td class="px-3 py-1.5 text-right text-green-600 font-semibold">-4%</td></tr>
+              </tbody>
+            </table>
+          </div>
+          <p class="text-xs text-gray-400 mt-2">GPU Gen2: <code class="bg-gray-100 px-1 rounded">gpu.nvidia.small.gen2</code> — NVIDIA A10G (24 GiB) replaces Tesla P4 (16 GiB)</p>
+        </div>
+
         <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
           <div class="px-5 py-4">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Gen1 Job Types Found</p>
-            <p id="g2-eligible" class="text-3xl font-bold text-gray-900">—</p>
+            <p id="gen2-eligible-count" class="text-3xl font-bold text-gray-900">—</p>
             <p class="text-xs text-gray-400 mt-1">Docker/Machine Linux with a Gen2 equivalent</p>
           </div>
           <div class="px-5 py-4">
-            <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Potential Credit Savings</p>
-            <p id="g2-savings" class="text-3xl font-bold text-green-600">—</p>
-            <p class="text-xs text-gray-400 mt-1">Scenario A: direct Arm swap, same runtime</p>
+            <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Cost Impact Breakdown</p>
+            <p id="gen2-total-savings" class="text-2xl font-bold text-green-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">xlarge/2xlarge save · medium/large cost more</p>
           </div>
           <div class="px-5 py-4">
             <p class="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-1">Already on Gen2</p>
-            <p id="g2-already" class="text-3xl font-bold text-purple-600">—</p>
-            <p class="text-xs text-gray-400 mt-1">Jobs already running Arm or newer resources</p>
+            <p id="gen2-already-count" class="text-3xl font-bold text-purple-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">Jobs already on Gen2 / Arm / newer resources</p>
           </div>
         </div>
         <div class="border-t border-gray-200 px-6 pt-5 pb-6">
-          <h3 class="font-semibold text-gray-800 mb-1">💰 Scenario A — Credit Savings: Direct Gen2 Swap</h3>
+          <h3 class="font-semibold text-gray-800 mb-1">💰 Credit Impact — Gen1 vs LinuxVM Gen2 (Speed-Adjusted)</h3>
           <p class="text-xs text-gray-400 mb-4">
-            Same job, same runtime. Arm resources run at 40% lower credits/min. Red = current Gen1 &nbsp;·&nbsp; Green = projected Gen2.
-            <span class="text-amber-600 font-bold">~</span> = CPU count differs slightly between Gen1 and Gen2 equivalent.
+            Gray = Gen1 current &nbsp;·&nbsp; <span class="text-green-600 font-medium">Green</span> = cheaper on Gen2 &nbsp;·&nbsp;
+            <span class="text-indigo-600 font-medium">Indigo</span> = higher rate but net savings after speed improvement &nbsp;·&nbsp;
+            <span class="text-amber-600 font-medium">Orange</span> = costs more (speed doesn't fully offset).
+            Gen2 credits account for faster execution time at the new rate.
           </p>
-          <div style="position:relative;height:360px"><canvas id="g2-save-chart"></canvas></div>
-        </div>
-        <div class="border-t border-gray-200 px-6 pt-5 pb-6">
-          <h3 class="font-semibold text-gray-800 mb-1">⏱ Scenario B — Speed Upgrade: Upsize on Gen2 for CPU-Bound Jobs</h3>
-          <p class="text-xs text-gray-400 mb-4">
-            Only jobs with CPU &gt; 65% utilization. Estimated using Amdahl's Law (80% parallelism assumption, conservative).
-            High confidence = CPU &gt; 80%. Many of these also reduce total credits despite costing more per minute.
-          </p>
-          <div style="position:relative;height:300px"><canvas id="g2-speed-chart"></canvas></div>
-          <p id="g2-speed-empty" class="hidden text-center text-gray-400 py-8 text-sm">
-            No CPU-bound candidates — either no jobs exceed 65% CPU threshold or utilization data is unavailable.
-          </p>
+          <div style="position:relative;height:360px"><canvas id="gen2-savings-chart"></canvas></div>
         </div>
         <div class="border-t border-gray-100 overflow-hidden">
           <div class="px-6 py-3 bg-gray-50 border-b border-gray-200 flex justify-between items-center">
-            <h3 class="font-semibold text-gray-700 text-sm">All Gen2 Migration Opportunities</h3>
-            <span class="text-xs text-gray-400">Top 50 by credit savings</span>
+            <h3 class="font-semibold text-gray-700 text-sm">Resource Classes Currently Available for Gen2 Optimization</h3>
+            <div class="flex items-center gap-3">
+              <span class="text-xs text-gray-400">Sorted by highest credit consumption · Top 10</span>
+              <button id="gen2-download-csv" class="hidden text-xs px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 font-medium">
+                ⬇ Download Full CSV
+              </button>
+            </div>
           </div>
           <div class="overflow-x-auto">
             <table class="min-w-full divide-y divide-gray-100 text-sm">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Job</th>
-                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Project</th>
-                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Current</th>
-                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Gen2 Equiv</th>
-                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Credits Used</th>
-                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Est Savings</th>
-                  <th class="px-4 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Save %</th>
-                  <th class="px-4 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Speed Opp</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Project</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Workflow</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Resource Class</th>
+                  <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Avg CPU</th>
+                  <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Avg RAM</th>
+                  <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Total Credits</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Suggested Gen2</th>
+                  <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Cost Δ</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">
+                    <span class="relative group cursor-help">Speed Impact
+                      <span class="text-gray-400 font-bold ml-0.5">ⓘ</span>
+                      <span class="absolute bottom-full left-0 mb-2 w-72 p-3 bg-gray-900 text-white text-xs font-normal normal-case rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                        <span class="font-semibold block mb-1">How this is calculated</span>
+                        <span class="block mb-1">Uses Amdahl's Law with a conservative 30% IPC gain estimate for Gen2 x86 CPUs.</span>
+                        <span class="block mb-1 font-mono bg-gray-800 px-1.5 py-0.5 rounded">speedup = 1/(1 - P + P/1.30)</span>
+                        <span class="block mb-1"><strong>P</strong> = compute-bound fraction = avg_cpu% × 0.85</span>
+                        <span class="block mb-1">High-CPU jobs benefit most. A 60% CPU job → ~12% faster. A 20% CPU job → ~4% faster (mostly I/O-bound).</span>
+                        <span class="block">Time saved reduces minutes billed, partially or fully offsetting higher cr/min rates.</span>
+                      </span>
+                    </span>
+                  </th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Value</th>
                 </tr>
               </thead>
-              <tbody id="g2-table-body" class="bg-white divide-y divide-gray-100"></tbody>
+              <tbody id="gen2-table-body" class="bg-white divide-y divide-gray-100"></tbody>
             </table>
           </div>
         </div>
         <div class="bg-amber-50 border-t border-amber-200 px-6 py-4 rounded-b-xl">
           <p class="text-xs text-amber-800">
-            <strong>⚠ Before migrating:</strong> Verify your Docker images support
-            <code>linux/arm64</code> (most public images do; custom images may not).
-            Test in a feature branch first. Speedup estimates are theoretical.
-            Jobs marked <strong>~</strong> use an approximate Gen2 equivalent with a slightly different CPU count.
+            <strong>⚠ Before migrating:</strong> LinuxVM Gen2 uses Machine and Remote Docker executors only (not the Docker executor).
+            Gen2 VMs have faster CPUs with improved single-thread performance.
+            <strong>medium and large are more expensive on Gen2</strong> (+80% cr/min) but have better CPU IPC.
+            xlarge and 2xlarge are cheaper (-28% and -4% respectively).
+            Test in a feature branch first. Verify against your plan pricing.
           </p>
         </div>
       </div>
       <!-- END GEN2 SECTION -->
-</div>
-      
+
       <!-- NEW: Resource Utilization Insights -->
       <div class="mb-8 p-6 bg-white rounded-lg shadow" id="resource-utilization-section">
         <h2 class="text-2xl font-bold text-gray-800 mb-4">Resource Utilization Insights</h2>
@@ -390,8 +430,36 @@
 
     const ARM_CLASSES_ORDERED = ['arm.medium','arm.large','arm.xlarge','arm.2xlarge'];
 
+    // ── LinuxVM Gen2 (x86) Resource Classes ──────────────────────────────────
+    const LINUXVM_GEN1 = {
+      'medium':   { cpm: 10, cpu: 2,  ram: 7.5 },
+      'large':    { cpm: 20, cpu: 4,  ram: 15  },
+      'xlarge':   { cpm: 40, cpu: 8,  ram: 32  },
+      '2xlarge':  { cpm: 80, cpu: 16, ram: 64  },
+    };
+    const LINUXVM_GEN2 = {
+      'medium.gen2':   { cpm: 18, cpu: 2,  ram: 8   },
+      'large.gen2':    { cpm: 36, cpu: 4,  ram: 16  },
+      'xlarge.gen2':   { cpm: 29, cpu: 8,  ram: 32  },
+      '2xlarge.gen2':  { cpm: 77, cpu: 16, ram: 64  },
+    };
+    const GEN1_TO_LINUXVM_GEN2 = {
+      'medium':  { gen2: 'medium.gen2',  pctChange: +80 },
+      'large':   { gen2: 'large.gen2',   pctChange: +80 },
+      'xlarge':  { gen2: 'xlarge.gen2',  pctChange: -28 },
+      '2xlarge': { gen2: '2xlarge.gen2', pctChange: -4  },
+    };
+    const GPU_GEN2_INFO = {
+      'gpu.nvidia.small': { gen2: 'gpu.nvidia.small.gen2', model: 'NVIDIA A10G', vram: '24 GiB' },
+    };
+
     let gen2SavingsChart = null;
     let gen2SpeedChart   = null;
+
+    // ── Gen2 IPC Gain — adjustable via slider ────────────────────────────────
+    // Default 30% (1.30x). Range: 10%–50%. Conservative estimate of Gen2 x86
+    // single-thread IPC improvement over Gen1. Adjust per customer benchmarks.
+    var gen2IpcGain = 1.30;
 
     // ── isGen2Resource ────────────────────────────────────────────────────────
     function isGen2Resource(executor, resourceClass) {
@@ -403,133 +471,208 @@
 
     // ── analyzeGen2Opportunities ──────────────────────────────────────────────
     // Returns { opportunities[], already_gen2_count, already_gen2_credits }
-    // Scenario A: direct Gen2 swap — pure math, 40% credit reduction, same runtime
-    // Scenario B: upsize on Gen2 — Amdahl's Law speedup for CPU-bound jobs
+    // SCOPE: LinuxVM Gen2 (x86 Machine/Remote Docker) + GPU Gen2 ONLY
+    // LinuxVM Gen2 pricing vs Gen1:
+    //   medium  10 → 18 cr/min (+80%)   — more expensive, faster CPU
+    //   large   20 → 36 cr/min (+80%)   — more expensive, faster CPU
+    //   xlarge  40 → 29 cr/min (-28%)   — CHEAPER
+    //   2xlarge 80 → 77 cr/min (-4%)    — CHEAPER
     function analyzeGen2Opportunities(data) {
-      const groups = {};
       let alreadyGen2Count = 0;
       let alreadyGen2Credits = 0;
+      const opps = [];
 
+      // ── Pass 1: LinuxVM Gen2 (x86) ────────────────────────────────────────
+      // Eligible: machine executor OR empty executor with eligible resource class
+      // (Usage CSVs often leave EXECUTOR blank — we include those since the
+      //  resource classes medium/large/xlarge/2xlarge are valid for machine)
+      const vmGroups = {};
       data.forEach(function(job) {
         const executor = (job.EXECUTOR || '').toLowerCase().trim();
         const rc       = (job.RESOURCE_CLASS || '').toLowerCase().trim();
 
+        // Count jobs already on Gen2
         if (isGen2Resource(executor, rc)) {
           alreadyGen2Count++;
           alreadyGen2Credits += (job.TOTAL_CREDITS || 0);
           return;
         }
 
-        // Only Docker and Machine Linux
-        if (executor && executor !== 'docker' && executor !== 'machine') return;
-        if (!GEN1_TO_GEN2[rc]) return;
+        // Skip non-machine executors (docker stays on docker, arm stays on arm)
+        // Empty executor is allowed through — most usage CSVs don't populate it
+        if (executor && executor !== 'machine' && executor !== 'remote-docker') return;
+        if (!GEN1_TO_LINUXVM_GEN2[rc]) return;
 
         const key = (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') +
-                    '||' + rc + '||' + executor;
+                    '||' + rc;
 
-        if (!groups[key]) {
-          groups[key] = {
+        if (!vmGroups[key]) {
+          vmGroups[key] = {
             project: job.PROJECT_NAME || 'unknown',
             job_name: job.JOB_NAME    || 'unknown',
+            workflow: job.WORKFLOW_NAME || '',
             resource_class: rc,
-            executor: executor,
+            executor: executor || 'machine',
             total_credits: 0, total_runs: 0, total_seconds: 0,
             cpu_vals: [], ram_vals: [],
           };
         }
-        const g = groups[key];
-        g.total_credits += (job.TOTAL_CREDITS    || 0);
-        g.total_runs    += 1;
-        g.total_seconds += (job.JOB_RUN_SECONDS  || 0);
-        const cpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
-        const ram = parseFloat(job.MEDIAN_RAM_UTILIZATION_PCT);
-        if (!isNaN(cpu)) g.cpu_vals.push(cpu);
-        if (!isNaN(ram)) g.ram_vals.push(ram);
+        if (job.WORKFLOW_NAME && !vmGroups[key].workflow) {
+          vmGroups[key].workflow = job.WORKFLOW_NAME;
+        }
+        var vg = vmGroups[key];
+        vg.total_credits += (job.TOTAL_CREDITS   || 0);
+        vg.total_runs    += 1;
+        vg.total_seconds += (job.JOB_RUN_SECONDS || 0);
+        var vcpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
+        var vram = parseFloat(job.MEDIAN_RAM_UTILIZATION_PCT);
+        if (!isNaN(vcpu)) vg.cpu_vals.push(vcpu);
+        if (!isNaN(vram)) vg.ram_vals.push(vram);
       });
 
-      const opps = [];
-
-      Object.values(groups).forEach(function(g) {
-        const mapping  = GEN1_TO_GEN2[g.resource_class];
-        const gen2Info = GEN2_RESOURCES[mapping.arm];
-
-        // Determine Gen1 CPM — try executor-specific first
-        const g1key = g.executor
-          ? (g.executor + ':' + g.resource_class)
-          : ('docker:'    + g.resource_class);
-        const gen1Info = GEN1_RESOURCES[g1key] || GEN1_RESOURCES['docker:' + g.resource_class];
+      Object.values(vmGroups).forEach(function(vg) {
+        var mapping = GEN1_TO_LINUXVM_GEN2[vg.resource_class];
+        if (!mapping) return;
+        var gen2Info = LINUXVM_GEN2[mapping.gen2];
+        var gen1Info = LINUXVM_GEN1[vg.resource_class];
         if (!gen1Info || !gen2Info) return;
 
-        const avg_cpu = g.cpu_vals.length > 0 ? _.mean(g.cpu_vals) : null;
-        const avg_ram = g.ram_vals.length > 0 ? _.mean(g.ram_vals) : null;
-        const avg_sec = g.total_runs > 0 ? g.total_seconds / g.total_runs : 0;
+        var avg_cpu = vg.cpu_vals.length > 0 ? _.mean(vg.cpu_vals) : null;
+        var avg_ram = vg.ram_vals.length > 0 ? _.mean(vg.ram_vals) : null;
 
-        // ── Scenario A: Direct Gen2 equivalent ─────────────────────────────
-        // Formula: gen2_credits = total_credits * (gen2_cpm / gen1_cpm)
-        // Savings = total_credits * (1 - gen2_cpm / gen1_cpm)
-        // For standard mappings this is always exactly 40%
-        const savingsPct    = (gen1Info.cpm - gen2Info.cpm) / gen1Info.cpm;
-        const savingsCredits = Math.round(g.total_credits * savingsPct);
-        const projectedCredits = Math.round(g.total_credits - savingsCredits);
+        // Positive savingsPct = saves money, negative = costs more
+        var savingsPct    = (gen1Info.cpm - gen2Info.cpm) / gen1Info.cpm;
+        var savingsCredits = Math.round(vg.total_credits * savingsPct);
+        var projectedCredits = Math.round(vg.total_credits - savingsCredits);
+        var avg_sec = vg.total_runs > 0 ? vg.total_seconds / vg.total_runs : 0;
 
-        // ── Scenario B: Upsize Gen2 for CPU-bound jobs ──────────────────────
-        // Only when: CPU util > 65%, job > 30s avg, larger Arm class available
-        // Amdahl: speedup = 1 / (1 - P + P/N)
-        //   P = conservative parallelizable fraction = cpu_util/100 * 0.80
-        //   N = new_cpu_count / old_cpu_count (Gen1 baseline)
-        let speedOpp = null;
-        if (avg_cpu !== null && avg_cpu > 65 && avg_sec > 30 && gen2Info.cpu < 16) {
-          const curIdx = ARM_CLASSES_ORDERED.indexOf(mapping.arm);
-          if (curIdx >= 0 && curIdx < ARM_CLASSES_ORDERED.length - 1) {
-            const upClass  = ARM_CLASSES_ORDERED[curIdx + 1];
-            const upInfo   = GEN2_RESOURCES[upClass];
+        // ── Speed projection for Gen2 ──────────────────────────────────────
+        // Gen2 x86 VMs have ~30% faster single-thread IPC (conservative).
+        // Effective speedup depends on how CPU-bound the job is:
+        //   speedup = 1 / (1 - P + P/S)   where P = cpu_fraction, S = IPC gain
+        // For jobs that cost MORE on Gen2 (medium/large +80%), this speed
+        // improvement is the value proposition — faster builds offset cost.
+        var GEN2_IPC_GAIN = gen2IpcGain; // controlled by slider
+        var speedProj = null;
+        if (avg_cpu !== null && avg_sec > 0) {
+          // P = fraction of time spent compute-bound (conservative: cpu% * 0.85)
+          var P = Math.min((avg_cpu / 100) * 0.85, 0.92);
+          var speedup = 1 / (1 - P + P / GEN2_IPC_GAIN);
+          var projectedSec = avg_sec / speedup;
+          var timeSavedPerRun = avg_sec - projectedSec;
+          var totalTimeSaved = timeSavedPerRun * vg.total_runs;
 
-            const P        = Math.min((avg_cpu / 100) * 0.80, 0.88);
-            const N        = upInfo.cpu / gen1Info.cpu;
-            const speedup  = 1 / (1 - P + P / N);
-            const newSec   = avg_sec / speedup;
+          // Net credit impact after speed improvement:
+          // Faster job = fewer minutes = fewer credits even at higher rate
+          var gen1CreditsPerRun = (avg_sec / 60) * gen1Info.cpm;
+          var gen2CreditsPerRun = (projectedSec / 60) * gen2Info.cpm;
+          var netCreditDeltaPerRun = gen2CreditsPerRun - gen1CreditsPerRun;
+          var netTotalCreditDelta = Math.round(netCreditDeltaPerRun * vg.total_runs);
 
-            const oldCPR   = (avg_sec  / 60) * gen1Info.cpm;
-            const newCPR   = (newSec   / 60) * upInfo.cpm;
-            const creditDelta = Math.round((newCPR - oldCPR) * g.total_runs);
-            const timeSaved   = Math.round((avg_sec - newSec) * g.total_runs);
-
-            speedOpp = {
-              arm_class:        upClass,
-              new_cpm:          upInfo.cpm,
-              speedup_x:        parseFloat(speedup.toFixed(2)),
-              pct_faster:       Math.round((1 - 1 / speedup) * 100),
-              credit_delta:     creditDelta,       // negative = saves credits too
-              total_time_saved: timeSaved,         // seconds across all runs
-              confidence:       avg_cpu > 80 ? 'high' : 'medium',
-            };
-          }
+          speedProj = {
+            ipc_gain:           GEN2_IPC_GAIN,
+            speedup_x:          parseFloat(speedup.toFixed(2)),
+            pct_faster:         Math.round((1 - 1 / speedup) * 100),
+            projected_sec:      Math.round(projectedSec),
+            time_saved_per_run: Math.round(timeSavedPerRun),
+            total_time_saved:   Math.round(totalTimeSaved),
+            net_credit_delta:   netTotalCreditDelta, // negative = net savings even with higher rate
+            net_credits_per_run: parseFloat(gen2CreditsPerRun.toFixed(1)),
+            gen1_credits_per_run: parseFloat(gen1CreditsPerRun.toFixed(1)),
+            is_net_positive:    netTotalCreditDelta < 0, // true = saves credits overall
+          };
         }
 
         opps.push({
-          project:           g.project,
-          job_name:          g.job_name,
-          resource_class:    g.resource_class,
-          executor:          g.executor,
+          project:           vg.project,
+          job_name:          vg.job_name,
+          workflow:          vg.workflow,
+          resource_class:    vg.resource_class,
+          executor:          vg.executor,
           gen1_cpm:          gen1Info.cpm,
           gen1_cpu:          gen1Info.cpu,
-          total_credits:     Math.round(g.total_credits),
-          total_runs:        g.total_runs,
+          total_credits:     Math.round(vg.total_credits),
+          total_runs:        vg.total_runs,
           avg_sec:           Math.round(avg_sec),
           avg_cpu:           avg_cpu !== null ? parseFloat(avg_cpu.toFixed(1)) : null,
           avg_ram:           avg_ram !== null ? parseFloat(avg_ram.toFixed(1)) : null,
-          gen2_class:        mapping.arm,
+          gen2_class:        mapping.gen2,
           gen2_cpm:          gen2Info.cpm,
           gen2_cpu:          gen2Info.cpu,
-          is_approx:         mapping.approx,
+          is_approx:         false,
           savings_pct:       Math.round(savingsPct * 100),
           savings_credits:   savingsCredits,
           projected_credits: projectedCredits,
-          speed_opp:         speedOpp,
+          speed_proj:        speedProj,
+          migration_type:    'linuxvm-gen2',
+          pct_change:        mapping.pctChange,
         });
       });
 
-      opps.sort(function(a,b){ return b.savings_credits - a.savings_credits; });
+      // ── Pass 2: GPU Gen2 ──────────────────────────────────────────────────
+      var gpuGroups = {};
+      data.forEach(function(job) {
+        var rc = (job.RESOURCE_CLASS || '').toLowerCase().trim();
+        if (isGen2Resource('', rc)) return;
+        if (!GPU_GEN2_INFO[rc]) return;
+
+        var key = 'gpu||' + (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') + '||' + rc;
+        if (!gpuGroups[key]) {
+          gpuGroups[key] = {
+            project: job.PROJECT_NAME || 'unknown',
+            job_name: job.JOB_NAME    || 'unknown',
+            workflow: job.WORKFLOW_NAME || '',
+            resource_class: rc,
+            total_credits: 0, total_runs: 0,
+            cpu_vals: [], ram_vals: [],
+          };
+        }
+        if (job.WORKFLOW_NAME && !gpuGroups[key].workflow) {
+          gpuGroups[key].workflow = job.WORKFLOW_NAME;
+        }
+        gpuGroups[key].total_credits += (job.TOTAL_CREDITS || 0);
+        gpuGroups[key].total_runs    += 1;
+        var gcpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
+        var gram = parseFloat(job.MEDIAN_RAM_UTILIZATION_PCT);
+        if (!isNaN(gcpu)) gpuGroups[key].cpu_vals.push(gcpu);
+        if (!isNaN(gram)) gpuGroups[key].ram_vals.push(gram);
+      });
+
+      Object.values(gpuGroups).forEach(function(gg) {
+        var info = GPU_GEN2_INFO[gg.resource_class];
+        if (!info) return;
+        var avg_cpu = gg.cpu_vals.length > 0 ? _.mean(gg.cpu_vals) : null;
+        var avg_ram = gg.ram_vals.length > 0 ? _.mean(gg.ram_vals) : null;
+
+        opps.push({
+          project:           gg.project,
+          job_name:          gg.job_name,
+          workflow:          gg.workflow,
+          resource_class:    gg.resource_class,
+          executor:          'gpu',
+          gen1_cpm:          0,
+          gen1_cpu:          0,
+          total_credits:     Math.round(gg.total_credits),
+          total_runs:        gg.total_runs,
+          avg_sec:           0,
+          avg_cpu:           avg_cpu !== null ? parseFloat(avg_cpu.toFixed(1)) : null,
+          avg_ram:           avg_ram !== null ? parseFloat(avg_ram.toFixed(1)) : null,
+          gen2_class:        info.gen2,
+          gen2_cpm:          0,
+          gen2_cpu:          0,
+          is_approx:         false,
+          savings_pct:       0,
+          savings_credits:   0,
+          projected_credits: Math.round(gg.total_credits),
+          speed_opp:         null,
+          migration_type:    'gpu-gen2',
+          gpu_model:         info.model,
+          gpu_vram:          info.vram,
+        });
+      });
+
+      // Sort by highest credit consumption (most impactful first)
+      opps.sort(function(a,b){ return b.total_credits - a.total_credits; });
 
       return {
         opportunities:        opps,
@@ -539,40 +682,122 @@
     }
 
     // ── updateGen2Analysis ────────────────────────────────────────────────────
+    // Stores full opps array for CSV download
+    var gen2AllOpportunities = [];
+
     function updateGen2Analysis() {
-      const result = analyzeGen2Opportunities(parsedData);
-      const opps   = result.opportunities;
+      var result = analyzeGen2Opportunities(parsedData);
+      var opps   = result.opportunities;
+      gen2AllOpportunities = opps; // store for CSV download
 
       // Summary cards
-      const totalSavings = opps.reduce(function(s,o){ return s + o.savings_credits; }, 0);
+      var savesCount = opps.filter(function(o){ return o.savings_pct > 0; }).length;
+      var costsMoreCount = opps.filter(function(o){ return o.savings_pct < 0; }).length;
       document.getElementById('gen2-eligible-count').textContent =
-        opps.length.toLocaleString() + ' job types';
+        opps.length.toLocaleString() + ' job groups';
       document.getElementById('gen2-total-savings').textContent =
-        totalSavings.toLocaleString() + ' credits';
+        savesCount + ' save · ' + costsMoreCount + ' cost more';
       document.getElementById('gen2-already-count').textContent =
         result.already_gen2_count.toLocaleString();
 
-      // Render charts
-      renderGen2SavingsChart(opps.slice(0, 12));
-      renderGen2SpeedChart(opps.filter(function(o){ return o.speed_opp !== null; }).slice(0, 12));
+      // Render charts — skip speed chart (Arm-specific, removed)
+      renderGen2SavingsChart(opps.slice(0, 10));
 
-      // Render table
-      renderGen2Table(opps.slice(0, 50));
+      // Render table — top 10 only
+      renderGen2Table(opps.slice(0, 10));
 
-      // Show section
-      const section = document.getElementById('gen2-analysis-section');
-      if (section) section.classList.remove('hidden');
+      // Show/hide download button
+      var dlBtn = document.getElementById('gen2-download-csv');
+      if (dlBtn) {
+        dlBtn.classList.toggle('hidden', opps.length === 0);
+        dlBtn.onclick = function() { downloadGen2CSV(gen2AllOpportunities); };
+      }
+
+      // Show section if any opportunities exist
+      var section = document.getElementById('gen2-analysis-section');
+      if (section) {
+        if (opps.length > 0 || result.already_gen2_count > 0) {
+          section.classList.remove('hidden');
+        } else {
+          section.classList.add('hidden');
+        }
+      }
+    }
+
+    // ── downloadGen2CSV ──────────────────────────────────────────────────────
+    function downloadGen2CSV(opps) {
+      var headers = ['Project','Job Name','Workflow','Resource Class','Gen1 cr/min',
+        'Gen2 Class','Gen2 cr/min','Rate % Change','Avg CPU','Avg RAM',
+        'Total Credits','Total Runs','Avg Sec/Run','Projected Credits (rate only)',
+        'Est % Faster','Projected Sec/Run','Time Saved/Run (s)','Total Time Saved (s)',
+        'Net Credit Delta (speed adj)','Net Positive?','Migration Type'];
+      var rows = opps.map(function(o) {
+        var sp = o.speed_proj;
+        return [
+          '"' + (o.project || '').replace(/"/g,'""') + '"',
+          '"' + (o.job_name || '').replace(/"/g,'""') + '"',
+          '"' + (o.workflow || '').replace(/"/g,'""') + '"',
+          o.resource_class,
+          o.gen1_cpm,
+          o.gen2_class,
+          o.gen2_cpm,
+          (o.pct_change !== undefined ? o.pct_change + '%' : ''),
+          (o.avg_cpu !== null ? o.avg_cpu + '%' : ''),
+          (o.avg_ram !== null ? o.avg_ram + '%' : ''),
+          o.total_credits,
+          o.total_runs,
+          o.avg_sec,
+          o.projected_credits,
+          sp ? sp.pct_faster + '%' : '',
+          sp ? sp.projected_sec : '',
+          sp ? sp.time_saved_per_run : '',
+          sp ? sp.total_time_saved : '',
+          sp ? sp.net_credit_delta : '',
+          sp ? (sp.is_net_positive ? 'YES' : 'NO') : '',
+          o.migration_type || 'linuxvm-gen2',
+        ].join(',');
+      });
+      var csv = headers.join(',') + '\n' + rows.join('\n');
+      var blob = new Blob([csv], { type: 'text/csv' });
+      var url  = URL.createObjectURL(blob);
+      var a    = document.createElement('a');
+      a.href = url;
+      a.download = (currentFileBaseName || 'gen2-optimization') + '-gen2-analysis.csv';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
     }
 
     // ── renderGen2SavingsChart ────────────────────────────────────────────────
     function renderGen2SavingsChart(opps) {
-      const canvas = document.getElementById('gen2-savings-chart');
+      var canvas = document.getElementById('gen2-savings-chart');
       if (!canvas || opps.length === 0) return;
       if (gen2SavingsChart) { gen2SavingsChart.destroy(); gen2SavingsChart = null; }
 
-      const labels  = opps.map(function(o) {
-        const approx = o.is_approx ? ' ~' : '';
-        return o.job_name.length > 28 ? o.job_name.slice(0,26) + '..' + approx : o.job_name + approx;
+      var labels = opps.map(function(o) {
+        return o.job_name.length > 28 ? o.job_name.slice(0,26) + '..' : o.job_name;
+      });
+
+      // Speed-adjusted projected credits: accounts for faster execution at new rate
+      // This is the TRUE cost picture — medium/large often become net-positive
+      var speedAdjusted = opps.map(function(o) {
+        if (o.speed_proj) {
+          return Math.max(0, o.total_credits + o.speed_proj.net_credit_delta);
+        }
+        return o.projected_credits;
+      });
+
+      // Color: green if speed-adjusted is cheaper, orange if still more, indigo if net-positive despite higher rate
+      var projColors = opps.map(function(o, i) {
+        if (o.pct_change > 0 && o.speed_proj && o.speed_proj.is_net_positive) return 'rgba(99,102,241,0.65)'; // indigo: net positive!
+        if (speedAdjusted[i] <= o.total_credits) return 'rgba(34,197,94,0.65)'; // green: saves
+        return 'rgba(251,146,60,0.65)'; // orange: costs more
+      });
+      var projBorders = opps.map(function(o, i) {
+        if (o.pct_change > 0 && o.speed_proj && o.speed_proj.is_net_positive) return 'rgba(99,102,241,1)';
+        if (speedAdjusted[i] <= o.total_credits) return 'rgba(34,197,94,1)';
+        return 'rgba(251,146,60,1)';
       });
 
       gen2SavingsChart = new Chart(canvas, {
@@ -583,15 +808,15 @@
             {
               label: 'Current Credits (Gen1)',
               data: opps.map(function(o){ return o.total_credits; }),
-              backgroundColor: 'rgba(239,68,68,0.6)',
-              borderColor:     'rgba(239,68,68,1)',
+              backgroundColor: 'rgba(107,114,128,0.5)',
+              borderColor:     'rgba(107,114,128,1)',
               borderWidth: 1,
             },
             {
-              label: 'Projected Credits (Gen2 Arm)',
-              data: opps.map(function(o){ return o.projected_credits; }),
-              backgroundColor: 'rgba(34,197,94,0.65)',
-              borderColor:     'rgba(34,197,94,1)',
+              label: 'Projected Credits (Gen2 + Speed Adjusted)',
+              data: speedAdjusted,
+              backgroundColor: projColors,
+              borderColor:     projBorders,
               borderWidth: 1,
             },
           ],
@@ -605,11 +830,18 @@
             tooltip: {
               callbacks: {
                 afterLabel: function(ctx) {
-                  const o = opps[ctx.dataIndex];
+                  var o = opps[ctx.dataIndex];
                   if (ctx.datasetIndex === 1) {
-                    return '  Saves ~' + o.savings_credits.toLocaleString() +
-                           ' credits (' + o.savings_pct + '%)' +
-                           (o.is_approx ? '  [~CPU count differs]' : '');
+                    var sp = o.speed_proj;
+                    if (sp && sp.is_net_positive) {
+                      return '  \u2705 Net saves ' + Math.abs(sp.net_credit_delta).toLocaleString() + ' credits (speed offsets +' + o.pct_change + '% rate)';
+                    } else if (sp && o.pct_change > 0) {
+                      return '  \u26a1 ' + sp.pct_faster + '% faster · +' + Math.abs(sp.net_credit_delta).toLocaleString() + ' credits (speed partially offsets cost)';
+                    } else if (o.savings_pct > 0) {
+                      return '  Saves ~' + o.savings_credits.toLocaleString() + ' credits (' + Math.abs(o.pct_change) + '% cheaper)';
+                    } else {
+                      return '  +' + o.pct_change + '% cr/min · faster CPU IPC';
+                    }
                   }
                   return '  ' + o.total_runs + ' runs · ' + o.resource_class + ' → ' + o.gen2_class;
                 },
@@ -707,35 +939,128 @@
       if (!body) return;
       body.innerHTML = '';
       if (opps.length === 0) {
-        body.innerHTML = '<tr><td colspan="8" class="text-center text-gray-400 py-6 text-sm">' +
-          'No Gen1 Linux jobs found with a Gen2 equivalent. ' +
-          'Jobs may already be on Arm, or executor data may be unavailable.</td></tr>';
+        body.innerHTML = '<tr><td colspan="10" class="text-center text-gray-400 py-6 text-sm">' +
+          'No eligible LinuxVM Gen1 jobs found. ' +
+          'Jobs may already be on Gen2, use Docker executor, or executor data is unavailable.</td></tr>';
         return;
       }
-      opps.forEach(function(o) {
-        const approxFlag = o.is_approx
-          ? '<span class="text-amber-600 ml-1" title="CPU count differs between Gen1 and Gen2 equivalent">~</span>'
-          : '';
-        const speedCell = o.speed_opp
-          ? '<span class="text-purple-600 font-medium">' + o.speed_opp.pct_faster + '% faster</span>' +
-            '<span class="text-xs text-gray-400 ml-1">(' + o.speed_opp.confidence + ')</span>'
-          : '<span class="text-gray-300">—</span>';
-        const row = document.createElement('tr');
-        row.className = 'hover:bg-gray-50 text-sm';
+      opps.forEach(function(o, idx) {
+        var estCpu = o.avg_cpu !== null ? o.avg_cpu + '%' : 'n/a';
+        var estRam = o.avg_ram !== null ? o.avg_ram + '%' : 'n/a';
+
+        // ── Cost Δ column ─────────────────────────────────────────────
+        var costDelta = o.gen2_cpm - o.gen1_cpm;
+        var costDeltaStr;
+        if (o.migration_type === 'gpu-gen2') {
+          costDelta = 0;
+          costDeltaStr = '<span class="text-blue-500 font-medium">GPU upgrade</span>';
+        } else {
+          var pct = o.pct_change;
+          costDeltaStr = pct > 0
+            ? '<span class="text-red-500 font-medium">+' + pct + '% c/min</span>'
+            : '<span class="text-green-600 font-medium">' + pct + '% c/min</span>';
+        }
+
+        // ── Speed Impact column ──────────────────────────────────────
+        var sp = o.speed_proj;
+        var speedCell = '';
+        if (sp) {
+          var timeFmt = sp.time_saved_per_run >= 60
+            ? Math.round(sp.time_saved_per_run / 60) + 'm'
+            : sp.time_saved_per_run + 's';
+          var totalFmt = sp.total_time_saved >= 3600
+            ? (sp.total_time_saved / 3600).toFixed(1) + 'h'
+            : Math.round(sp.total_time_saved / 60) + 'm';
+          // Net credit verdict
+          var netVerdict;
+          if (sp.is_net_positive) {
+            netVerdict = '<span class="text-green-600 font-semibold">NET SAVINGS</span>';
+          } else if (o.pct_change > 0) {
+            netVerdict = '<span class="text-amber-600 font-medium">faster builds</span>';
+          } else {
+            netVerdict = '<span class="text-green-600 font-medium">cheaper + faster</span>';
+          }
+          speedCell =
+            '<div class="text-xs">' +
+            '<span class="font-semibold text-indigo-700">' + sp.pct_faster + '% faster</span>' +
+            '<span class="text-gray-400 ml-1">(' + sp.speedup_x + 'x)</span>' +
+            '<br><span class="text-gray-500">\u2212' + timeFmt + '/run · ' + totalFmt + ' total</span>' +
+            '<br>' + netVerdict +
+            '</div>';
+        } else {
+          speedCell = '<span class="text-gray-300 text-xs">no data</span>';
+        }
+
+        // ── Optimization Value popover ───────────────────────────────
+        var popoverId = 'gen2-popover-' + idx;
+        // Build rich popover content
+        var popoverLines = [];
+        if (sp) {
+          popoverLines.push('<p class="font-semibold text-gray-800 mb-1">Speed &amp; Cost Analysis</p>');
+          popoverLines.push('<p><span class="font-medium text-indigo-700">\u26a1 ' + sp.pct_faster + '% faster</span> — avg ' +
+            o.avg_sec + 's \u2192 ' + sp.projected_sec + 's per run</p>');
+          popoverLines.push('<p>\u23f1 Saves ' + timeFmt + '/run \u00d7 ' + o.total_runs.toLocaleString() + ' runs = <strong>' + totalFmt + ' total time saved</strong></p>');
+          popoverLines.push('<p>\ud83d\udcb0 Gen1: ' + sp.gen1_credits_per_run + ' cr/run \u2192 Gen2: ' + sp.net_credits_per_run + ' cr/run</p>');
+          if (sp.is_net_positive) {
+            popoverLines.push('<p class="mt-1 px-2 py-1 bg-green-100 rounded text-green-800 font-semibold">' +
+              '\u2705 Net saves ' + Math.abs(sp.net_credit_delta).toLocaleString() + ' credits despite +' + o.pct_change + '% rate — speed offsets cost</p>');
+          } else if (o.pct_change > 0) {
+            popoverLines.push('<p class="mt-1 px-2 py-1 bg-amber-50 rounded text-amber-800">' +
+              '\u26a0\ufe0f Costs ~' + sp.net_credit_delta.toLocaleString() + ' more credits, but builds finish ' + sp.pct_faster + '% faster. ' +
+              'Worth it for velocity-constrained pipelines.</p>');
+          } else {
+            popoverLines.push('<p class="mt-1 px-2 py-1 bg-green-100 rounded text-green-800 font-semibold">' +
+              '\u2705 Cheaper rate + faster execution = saves ' + Math.abs(sp.net_credit_delta).toLocaleString() + ' credits</p>');
+          }
+        } else {
+          popoverLines.push('<p class="font-semibold text-gray-800 mb-1">Gen2 Optimization</p>');
+          popoverLines.push('<p>\ud83d\udcca Avg CPU: ' + estCpu + ' \u00b7 Avg RAM: ' + estRam + '</p>');
+          if (o.pct_change <= 0) {
+            popoverLines.push('<p class="text-green-700">\u2705 ' + Math.abs(o.pct_change) + '% cheaper cr/min on Gen2</p>');
+          } else {
+            popoverLines.push('<p class="text-amber-700">\u26a0\ufe0f +' + o.pct_change + '% cr/min — recommend testing speed improvement to validate ROI</p>');
+          }
+        }
+
+        // Button label
+        var btnLabel, btnColor;
+        if (o.migration_type === 'gpu-gen2') {
+          btnLabel = '\ud83d\udd27 GPU Gen2'; btnColor = 'text-blue-600';
+        } else if (sp && sp.is_net_positive) {
+          btnLabel = '\u2705 Net savings'; btnColor = 'text-green-700 font-semibold';
+        } else if (o.pct_change <= 0) {
+          btnLabel = '\u2193 ' + Math.abs(o.pct_change) + '% cheaper'; btnColor = 'text-green-600';
+        } else if (sp) {
+          btnLabel = '\u26a1 ' + sp.pct_faster + '% faster'; btnColor = 'text-indigo-600 font-medium';
+        } else {
+          btnLabel = '\u2191 +' + o.pct_change + '% cost'; btnColor = 'text-amber-600';
+        }
+
+        var optValueCell =
+          '<button onclick="document.getElementById(\'' + popoverId + '\').classList.toggle(\'hidden\')" ' +
+          'class="text-left ' + btnColor + ' text-xs underline cursor-pointer">' +
+          btnLabel + '</button>' +
+          '<div id="' + popoverId + '" class="hidden mt-2 p-3 bg-blue-50 rounded-lg text-xs text-gray-700 border border-blue-200">' +
+          popoverLines.join('') + '</div>';
+
+        var workflow = o.workflow || '\u2014';
+        var row = document.createElement('tr');
+        row.className = 'hover:bg-gray-50 text-sm align-top';
         row.innerHTML =
-          '<td class="px-4 py-3 font-medium text-gray-800">' + escapeHtml(o.job_name) + '</td>' +
-          '<td class="px-4 py-3 text-gray-500 text-xs">' + escapeHtml(o.project) + '</td>' +
-          '<td class="px-4 py-3"><span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">' +
+          '<td class="px-3 py-3 text-gray-500 text-xs">' + escapeHtml(o.project) + '</td>' +
+          '<td class="px-3 py-3 text-gray-500 text-xs">' + escapeHtml(workflow) + '</td>' +
+          '<td class="px-3 py-3"><span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">' +
             o.resource_class + '</span>' +
             '<span class="text-xs text-gray-400 ml-1">' + o.gen1_cpm + 'c/min</span></td>' +
-          '<td class="px-4 py-3"><span class="font-mono text-xs bg-green-50 text-green-700 px-2 py-0.5 rounded">' +
-            o.gen2_class + approxFlag + '</span>' +
+          '<td class="px-3 py-3 text-right text-gray-600">' + estCpu + '</td>' +
+          '<td class="px-3 py-3 text-right text-gray-600">' + estRam + '</td>' +
+          '<td class="px-3 py-3 text-right text-gray-700 font-medium">' + o.total_credits.toLocaleString() + '</td>' +
+          '<td class="px-3 py-3"><span class="font-mono text-xs px-2 py-0.5 rounded bg-blue-50 text-blue-700">' +
+            o.gen2_class + '</span>' +
             '<span class="text-xs text-gray-400 ml-1">' + o.gen2_cpm + 'c/min</span></td>' +
-          '<td class="px-4 py-3 text-right text-gray-700">' + o.total_credits.toLocaleString() + '</td>' +
-          '<td class="px-4 py-3 text-right font-semibold text-green-600">' +
-            o.savings_credits.toLocaleString() + '</td>' +
-          '<td class="px-4 py-3 text-right text-green-600">' + o.savings_pct + '%</td>' +
-          '<td class="px-4 py-3">' + speedCell + '</td>';
+          '<td class="px-3 py-3 text-right">' + costDeltaStr + '</td>' +
+          '<td class="px-3 py-3">' + speedCell + '</td>' +
+          '<td class="px-3 py-3">' + optValueCell + '</td>';
         body.appendChild(row);
       });
     }
@@ -754,6 +1079,7 @@
     document.addEventListener('DOMContentLoaded', function() {
       // Set up file input listener
       document.getElementById('csv-file').addEventListener('change', handleFileUpload);
+
       
       // Set up burn rate toggle buttons
       document.getElementById('daily-toggle').addEventListener('click', function() {
@@ -890,7 +1216,10 @@
         document.getElementById('resource-utilization-section').classList.remove('hidden');
         updateResourceUtilizationAnalysis();
       }
-      
+
+      // ── Gen2 optimization analysis (always runs — doesn't need utilization cols) ──
+      updateGen2Analysis();
+
       // Show results
       document.getElementById('loading').classList.add('hidden');
       document.getElementById('results').classList.remove('hidden');
@@ -2035,7 +2364,7 @@
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', 'circleci-usage-report.csv');
+      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-usage-report.csv');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
