@@ -258,7 +258,26 @@
           
           <!-- Underutilized Jobs Tab Content -->
           <div id="underutilized-jobs-content">
-            <h3 class="text-lg font-medium text-gray-700 mb-2">Top 10 Underutilized Jobs (By Total Credits)</h3>
+            <div class="flex flex-wrap justify-between items-center mb-2 gap-2">
+              <h3 class="text-lg font-medium text-gray-700">Top 10 Underutilized Jobs (By Total Credits)</h3>
+              <div class="flex items-center gap-2">
+                <div id="underutil-filter-buttons" class="hidden flex items-center gap-1.5">
+                  <button id="underutil-filter-all" onclick="applyUnderutilFilter('all')"
+                    class="text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-gray-800 text-white">
+                    All
+                  </button>
+                  <button id="underutil-filter-true" onclick="applyUnderutilFilter('true')"
+                    class="text-xs px-3 py-1 rounded font-medium border border-green-300 bg-white text-green-700 hover:bg-green-50">
+                    ✅ True Candidates
+                  </button>
+                  <button id="underutil-filter-risky" onclick="applyUnderutilFilter('risky')"
+                    class="text-xs px-3 py-1 rounded font-medium border border-amber-300 bg-white text-amber-700 hover:bg-amber-50">
+                    ⚠ Needs Review
+                  </button>
+                </div>
+                <span id="underutil-filter-count" class="text-xs text-gray-400"></span>
+              </div>
+            </div>
             <div id="no-underutilized-message" class="hidden p-4 bg-gray-50 rounded-md text-gray-600">
               No jobs found with both CPU and RAM utilization ≤ 40%.
             </div>
@@ -271,8 +290,20 @@
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      <span class="relative group cursor-help">Spike Risk
+                        <span class="text-gray-400 font-bold ml-0.5">ⓘ</span>
+                        <span class="absolute bottom-full left-0 mb-2 w-72 p-3 bg-gray-900 text-white text-xs font-normal normal-case rounded-lg shadow-xl opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none z-50">
+                          <span class="font-semibold block mb-1">Spike Detection Method</span>
+                          <span class="block mb-1">% of runs where MAX CPU or RAM hit ≥70%. If ≥20% of runs spike, the job may need its current resources despite low averages.</span>
+                          <span class="block mb-1">Low averages can be misleading (especially with parallelism), but spikes don't lie.</span>
+                          <span class="block"><strong>True Candidate</strong> = low spike rate + projected peak fits on smaller class.</span>
+                        </span>
+                      </span>
+                    </th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Credits</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Suggested Class</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Verdict</th>
                   </tr>
                 </thead>
                 <tbody id="underutilized-jobs-body" class="bg-white divide-y divide-gray-200">
@@ -284,7 +315,26 @@
           
           <!-- Underprovisioned Jobs Tab Content -->
           <div id="overprovisioned-jobs-content" class="hidden">
-            <h3 class="text-lg font-medium text-gray-700 mb-2">Top 10 Underprovisioned Jobs (By High Utilization)</h3>
+            <div class="flex flex-wrap justify-between items-center mb-2 gap-2">
+              <h3 class="text-lg font-medium text-gray-700">Top 10 Underprovisioned Jobs (By High Utilization)</h3>
+              <div class="flex items-center gap-2">
+                <div id="overprov-filter-buttons" class="hidden flex items-center gap-1.5">
+                  <button id="overprov-filter-all" onclick="applyOverprovFilter('all')"
+                    class="text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-gray-800 text-white">
+                    All
+                  </button>
+                  <button id="overprov-filter-true" onclick="applyOverprovFilter('true')"
+                    class="text-xs px-3 py-1 rounded font-medium border border-green-300 bg-white text-green-700 hover:bg-green-50">
+                    ✅ True Candidates
+                  </button>
+                  <button id="overprov-filter-risky" onclick="applyOverprovFilter('risky')"
+                    class="text-xs px-3 py-1 rounded font-medium border border-amber-300 bg-white text-amber-700 hover:bg-amber-50">
+                    ⚠ Needs Review
+                  </button>
+                </div>
+                <span id="overprov-filter-count" class="text-xs text-gray-400"></span>
+              </div>
+            </div>
             <div id="no-overprovisioned-message" class="hidden p-4 bg-gray-50 rounded-md text-gray-600">
               No jobs found with CPU or RAM utilization ≥ 80%.
             </div>
@@ -1429,25 +1479,35 @@
       document.getElementById('download-overprovisioned-report').disabled = overprovisionedJobs.length === 0;
     }
     
+    // ── Spike-aware overprovisioned (underprovisioned) job analysis ────────
+    var overprovAllGroups = [];
+    var overprovCurrentFilter = 'all';
+
+    function classifyOverprovGroup(group) {
+      // True candidate: consistently high utilization (>=50% of runs have MAX >= 70%)
+      // These genuinely need upsizing, not just occasional spikes
+      if (group.has_spike_data && group.high_util_pct >= 50) return 'true';
+      // Also true if averages are very high (>=80%) regardless of max data
+      if (group.avg_cpu >= 80 || group.avg_ram >= 80) return 'true';
+      return 'risky'; // might be occasional spikes, not sustained load
+    }
+
     function updateOverprovisionedJobsTable(overprovisionedJobs) {
       const tableBody = document.getElementById('overprovisioned-jobs-body');
       const noJobsMessage = document.getElementById('no-overprovisioned-message');
-      
-      // Clear existing rows
+
       tableBody.innerHTML = '';
-      
+
       if (overprovisionedJobs.length === 0) {
-        // Show "no jobs" message
         noJobsMessage.classList.remove('hidden');
         document.getElementById('overprovisioned-jobs-table').classList.add('hidden');
+        document.getElementById('overprov-filter-buttons').classList.add('hidden');
         return;
       }
-      
-      // Hide "no jobs" message and show table
+
       noJobsMessage.classList.add('hidden');
       document.getElementById('overprovisioned-jobs-table').classList.remove('hidden');
-      
-      // Group overprovisioned jobs by name/project to calculate averages
+
       const jobGroups = {};
       overprovisionedJobs.forEach(job => {
         const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
@@ -1459,49 +1519,117 @@
             total_credits: 0,
             cpuValues: [],
             ramValues: [],
+            maxCpuValues: [],
+            maxRamValues: [],
+            highUtilRunCount: 0,
             count: 0
           };
         }
-        
+
         jobGroups[key].total_credits += job.TOTAL_CREDITS;
         jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
         jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
         jobGroups[key].count++;
+
+        var maxCpu = parseFloat(job.MAX_CPU_UTILIZATION_PCT);
+        var maxRam = parseFloat(job.MAX_RAM_UTILIZATION_PCT);
+        if (!isNaN(maxCpu)) jobGroups[key].maxCpuValues.push(maxCpu);
+        if (!isNaN(maxRam)) jobGroups[key].maxRamValues.push(maxRam);
+
+        // Count runs with sustained high utilization (MAX >= 70%)
+        if ((!isNaN(maxCpu) && maxCpu >= SPIKE_MAX_THRESHOLD) ||
+            (!isNaN(maxRam) && maxRam >= SPIKE_MAX_THRESHOLD)) {
+          jobGroups[key].highUtilRunCount++;
+        }
       });
-      
-      // Calculate averages
+
       Object.values(jobGroups).forEach(group => {
         group.avg_cpu = _.mean(group.cpuValues);
         group.avg_ram = _.mean(group.ramValues);
-        
-        // Determine suggested resource class based on utilization
         group.suggested_class = getUpgradedResourceClass(group.resource_class, group.avg_cpu, group.avg_ram);
+        group.has_spike_data = group.maxCpuValues.length > 0 || group.maxRamValues.length > 0;
+        group.high_util_pct = group.has_spike_data ? Math.round((group.highUtilRunCount / group.count) * 100) : null;
+        group.candidate_type = classifyOverprovGroup(group);
       });
-      
-      // Sort by highest utilization (using max of CPU and RAM) and get top 10
-      const sortedGroups = Object.values(jobGroups)
-        .sort((a, b) => Math.max(b.avg_cpu, b.avg_ram) - Math.max(a.avg_cpu, a.avg_ram))
-        .slice(0, 10);
-      
-      // Add rows to table
-      sortedGroups.forEach(group => {
+
+      overprovAllGroups = Object.values(jobGroups)
+        .sort((a, b) => Math.max(b.avg_cpu, b.avg_ram) - Math.max(a.avg_cpu, a.avg_ram));
+
+      // Show filter buttons
+      var trueCount = overprovAllGroups.filter(g => g.candidate_type === 'true').length;
+      var riskyCount = overprovAllGroups.filter(g => g.candidate_type === 'risky').length;
+      var filterBtns = document.getElementById('overprov-filter-buttons');
+      if (filterBtns) {
+        filterBtns.classList.remove('hidden');
+        var trueBtn = document.getElementById('overprov-filter-true');
+        var riskyBtn = document.getElementById('overprov-filter-risky');
+        if (trueBtn) trueBtn.textContent = '✅ True Candidates (' + trueCount + ')';
+        if (riskyBtn) riskyBtn.textContent = '⚠ Needs Review (' + riskyCount + ')';
+      }
+
+      overprovCurrentFilter = 'all';
+      renderOverprovTable(overprovAllGroups.slice(0, 10));
+      document.getElementById('overprov-filter-count').textContent = '';
+    }
+
+    function applyOverprovFilter(filter) {
+      overprovCurrentFilter = filter;
+      var filtered;
+      if (filter === 'true') {
+        filtered = overprovAllGroups.filter(g => g.candidate_type === 'true');
+      } else if (filter === 'risky') {
+        filtered = overprovAllGroups.filter(g => g.candidate_type === 'risky');
+      } else {
+        filtered = overprovAllGroups;
+      }
+
+      ['all', 'true', 'risky'].forEach(function(f) {
+        var btn = document.getElementById('overprov-filter-' + f);
+        if (!btn) return;
+        if (f === filter) {
+          if (f === 'all') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-gray-800 text-white';
+          else if (f === 'true') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-green-500 bg-green-600 text-white';
+          else btn.className = 'text-xs px-3 py-1 rounded font-medium border border-amber-500 bg-amber-500 text-white';
+        } else {
+          if (f === 'all') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-white text-gray-600 hover:bg-gray-50';
+          else if (f === 'true') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-green-300 bg-white text-green-700 hover:bg-green-50';
+          else btn.className = 'text-xs px-3 py-1 rounded font-medium border border-amber-300 bg-white text-amber-700 hover:bg-amber-50';
+        }
+      });
+
+      var countEl = document.getElementById('overprov-filter-count');
+      if (filter === 'all') countEl.textContent = '';
+      else countEl.textContent = filtered.length + ' of ' + overprovAllGroups.length + ' job groups';
+
+      renderOverprovTable(filtered.slice(0, 10));
+    }
+
+    function renderOverprovTable(groups) {
+      const tableBody = document.getElementById('overprovisioned-jobs-body');
+      tableBody.innerHTML = '';
+
+      if (groups.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-6 text-sm">No jobs match this filter.</td></tr>';
+        return;
+      }
+
+      groups.forEach(group => {
         const row = document.createElement('tr');
-        
-        // Highlight high utilization values
+        row.className = group.candidate_type === 'true' ? 'bg-amber-50/40' : '';
+
         const cpuClass = group.avg_cpu >= OVERPROVISIONING_THRESHOLD ? 'text-amber-600 font-medium' : 'text-gray-500';
         const ramClass = group.avg_ram >= OVERPROVISIONING_THRESHOLD ? 'text-amber-600 font-medium' : 'text-gray-500';
-        
-        // Add cells
+
         row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${group.job_name}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.project_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(group.job_name)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(group.project_name)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.resource_class}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm ${cpuClass}">${group.avg_cpu.toFixed(1)}%</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm ${ramClass}">${group.avg_ram.toFixed(1)}%</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.total_credits.toFixed(0)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm ${group.suggested_class !== group.resource_class ? 'text-amber-600 font-medium' : 'text-gray-500'}">${group.suggested_class}</td>
         `;
-        
+
         tableBody.appendChild(row);
       });
     }
@@ -1712,25 +1840,57 @@
       }
     }
 
+    // ── Spike-aware underutilized job analysis ─────────────────────────────
+    // Thresholds for spike detection
+    const SPIKE_MAX_THRESHOLD = 70;   // A run "spikes" if MAX CPU or RAM >= this
+    const SPIKE_RUN_PCT = 20;         // Job fails spike test if >= this % of runs spike
+    const PROJECTED_PEAK_LIMIT = 85;  // Projected peak on target class must be < this
+
+    var underutilAllGroups = [];       // Store for filter toggling
+    var underutilCurrentFilter = 'all';
+
+    function classifyUnderutilGroup(group) {
+      // If spike rate >= 20%, it's risky — low averages are misleading
+      if (group.spike_pct >= SPIKE_RUN_PCT) return 'risky';
+      // If projected peak on target class exceeds 85%, target is too small
+      if (group.projected_peak_cpu > PROJECTED_PEAK_LIMIT || group.projected_peak_ram > PROJECTED_PEAK_LIMIT) return 'risky';
+      // If we can't determine a smaller class, nothing to optimize
+      if (group.suggested_class === group.resource_class) return 'risky';
+      return 'true';
+    }
+
+    function getResourceSpecs(resourceClass) {
+      // Try exact match in GEN1_RESOURCES with common prefixes
+      var prefixes = ['docker:', 'machine:', ''];
+      for (var i = 0; i < prefixes.length; i++) {
+        var key = prefixes[i] + resourceClass;
+        if (GEN1_RESOURCES[key]) return GEN1_RESOURCES[key];
+      }
+      // Try partial match for arm classes
+      if (resourceClass.startsWith('arm.')) {
+        var armKey = resourceClass;
+        if (GEN2_RESOURCES[armKey]) return GEN2_RESOURCES[armKey];
+      }
+      return null;
+    }
+
     function updateUnderutilizedJobsTable(underutilizedJobs) {
       const tableBody = document.getElementById('underutilized-jobs-body');
       const noJobsMessage = document.getElementById('no-underutilized-message');
-      
-      // Clear existing rows
+
       tableBody.innerHTML = '';
-      
+
       if (underutilizedJobs.length === 0) {
-        // Show "no jobs" message
         noJobsMessage.classList.remove('hidden');
         document.getElementById('underutilized-jobs-table').classList.add('hidden');
+        document.getElementById('underutil-filter-buttons').classList.add('hidden');
         return;
       }
-      
-      // Hide "no jobs" message and show table
+
       noJobsMessage.classList.add('hidden');
       document.getElementById('underutilized-jobs-table').classList.remove('hidden');
-      
-      // Group underutilized jobs by name/project to calculate averages
+
+      // Group underutilized jobs by name/project — now tracking MAX values for spike detection
       const jobGroups = {};
       underutilizedJobs.forEach(job => {
         const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
@@ -1739,48 +1899,180 @@
             job_name: job.JOB_NAME,
             project_name: job.PROJECT_NAME,
             resource_class: job.RESOURCE_CLASS,
+            executor: job.EXECUTOR || '',
             total_credits: 0,
             cpuValues: [],
             ramValues: [],
+            maxCpuValues: [],
+            maxRamValues: [],
+            spikeRunCount: 0,
             count: 0
           };
         }
-        
+
         jobGroups[key].total_credits += job.TOTAL_CREDITS;
         jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
         jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
         jobGroups[key].count++;
+
+        // Track max values for spike detection
+        var maxCpu = parseFloat(job.MAX_CPU_UTILIZATION_PCT);
+        var maxRam = parseFloat(job.MAX_RAM_UTILIZATION_PCT);
+        if (!isNaN(maxCpu)) jobGroups[key].maxCpuValues.push(maxCpu);
+        if (!isNaN(maxRam)) jobGroups[key].maxRamValues.push(maxRam);
+
+        // Count spike runs: any run where MAX CPU or RAM >= 70%
+        if ((!isNaN(maxCpu) && maxCpu >= SPIKE_MAX_THRESHOLD) ||
+            (!isNaN(maxRam) && maxRam >= SPIKE_MAX_THRESHOLD)) {
+          jobGroups[key].spikeRunCount++;
+        }
       });
-      
-      // Calculate averages
+
+      // Calculate averages, spike rates, and projected peaks
       Object.values(jobGroups).forEach(group => {
         group.avg_cpu = _.mean(group.cpuValues);
         group.avg_ram = _.mean(group.ramValues);
-        
-        // Determine suggested resource class based on utilization
         group.suggested_class = getSuggestedResourceClass(group.resource_class, group.avg_cpu, group.avg_ram);
+
+        // Spike analysis
+        var hasMaxData = group.maxCpuValues.length > 0 || group.maxRamValues.length > 0;
+        group.has_spike_data = hasMaxData;
+        group.spike_pct = hasMaxData ? Math.round((group.spikeRunCount / group.count) * 100) : null;
+        group.max_cpu_observed = group.maxCpuValues.length > 0 ? _.max(group.maxCpuValues) : null;
+        group.max_ram_observed = group.maxRamValues.length > 0 ? _.max(group.maxRamValues) : null;
+
+        // Projected peak on target class
+        group.projected_peak_cpu = 0;
+        group.projected_peak_ram = 0;
+        if (group.suggested_class !== group.resource_class) {
+          var currentSpecs = getResourceSpecs(group.resource_class);
+          var targetSpecs = getResourceSpecs(group.suggested_class);
+          if (currentSpecs && targetSpecs) {
+            // Project observed max onto smaller class
+            if (group.max_cpu_observed !== null && targetSpecs.cpu > 0) {
+              group.projected_peak_cpu = Math.round(group.max_cpu_observed * (currentSpecs.cpu / targetSpecs.cpu));
+            }
+            if (group.max_ram_observed !== null && targetSpecs.ram > 0) {
+              group.projected_peak_ram = Math.round(group.max_ram_observed * (currentSpecs.ram / targetSpecs.ram));
+            }
+          }
+        }
+
+        // Classify
+        group.candidate_type = classifyUnderutilGroup(group);
       });
-      
-      // Sort by total credits (highest first) and get top 10
-      const sortedGroups = Object.values(jobGroups)
-        .sort((a, b) => b.total_credits - a.total_credits)
-        .slice(0, 10);
-      
-      // Add rows to table
-      sortedGroups.forEach(group => {
+
+      // Sort by total credits (highest first)
+      underutilAllGroups = Object.values(jobGroups)
+        .sort((a, b) => b.total_credits - a.total_credits);
+
+      // Show filter buttons
+      var trueCount = underutilAllGroups.filter(g => g.candidate_type === 'true').length;
+      var riskyCount = underutilAllGroups.filter(g => g.candidate_type === 'risky').length;
+      var filterBtns = document.getElementById('underutil-filter-buttons');
+      if (filterBtns) {
+        filterBtns.classList.remove('hidden');
+        var trueBtn = document.getElementById('underutil-filter-true');
+        var riskyBtn = document.getElementById('underutil-filter-risky');
+        if (trueBtn) trueBtn.textContent = '✅ True Candidates (' + trueCount + ')';
+        if (riskyBtn) riskyBtn.textContent = '⚠ Needs Review (' + riskyCount + ')';
+      }
+
+      // Reset filter and render
+      underutilCurrentFilter = 'all';
+      renderUnderutilTable(underutilAllGroups.slice(0, 10));
+      document.getElementById('underutil-filter-count').textContent = '';
+    }
+
+    function applyUnderutilFilter(filter) {
+      underutilCurrentFilter = filter;
+      var filtered;
+      if (filter === 'true') {
+        filtered = underutilAllGroups.filter(g => g.candidate_type === 'true');
+      } else if (filter === 'risky') {
+        filtered = underutilAllGroups.filter(g => g.candidate_type === 'risky');
+      } else {
+        filtered = underutilAllGroups;
+      }
+
+      // Update button styles
+      ['all', 'true', 'risky'].forEach(function(f) {
+        var btn = document.getElementById('underutil-filter-' + f);
+        if (!btn) return;
+        if (f === filter) {
+          if (f === 'all') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-gray-800 text-white';
+          else if (f === 'true') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-green-500 bg-green-600 text-white';
+          else btn.className = 'text-xs px-3 py-1 rounded font-medium border border-amber-500 bg-amber-500 text-white';
+        } else {
+          if (f === 'all') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-gray-300 bg-white text-gray-600 hover:bg-gray-50';
+          else if (f === 'true') btn.className = 'text-xs px-3 py-1 rounded font-medium border border-green-300 bg-white text-green-700 hover:bg-green-50';
+          else btn.className = 'text-xs px-3 py-1 rounded font-medium border border-amber-300 bg-white text-amber-700 hover:bg-amber-50';
+        }
+      });
+
+      var countEl = document.getElementById('underutil-filter-count');
+      if (filter === 'all') countEl.textContent = '';
+      else countEl.textContent = filtered.length + ' of ' + underutilAllGroups.length + ' job groups';
+
+      renderUnderutilTable(filtered.slice(0, 10));
+    }
+
+    function renderUnderutilTable(groups) {
+      const tableBody = document.getElementById('underutilized-jobs-body');
+      tableBody.innerHTML = '';
+
+      if (groups.length === 0) {
+        tableBody.innerHTML = '<tr><td colspan="9" class="text-center text-gray-400 py-6 text-sm">No jobs match this filter.</td></tr>';
+        return;
+      }
+
+      groups.forEach(group => {
         const row = document.createElement('tr');
-        
-        // Add cells
+        row.className = group.candidate_type === 'true' ? 'bg-green-50/40' : '';
+
+        // Spike Risk cell
+        var spikeCell;
+        if (!group.has_spike_data) {
+          spikeCell = '<span class="text-gray-300 text-xs">no data</span>';
+        } else if (group.spike_pct >= SPIKE_RUN_PCT) {
+          spikeCell = '<span class="text-red-600 font-medium text-xs">' + group.spike_pct + '% spike</span>' +
+            '<br><span class="text-gray-400 text-xs">max: ' +
+            (group.max_cpu_observed !== null ? group.max_cpu_observed.toFixed(0) + '% CPU' : '') +
+            (group.max_ram_observed !== null ? ' / ' + group.max_ram_observed.toFixed(0) + '% RAM' : '') + '</span>';
+        } else {
+          spikeCell = '<span class="text-green-600 font-medium text-xs">' + group.spike_pct + '% spike</span>' +
+            '<br><span class="text-gray-400 text-xs">safe to downsize</span>';
+        }
+
+        // Verdict cell
+        var verdictCell;
+        if (group.candidate_type === 'true') {
+          verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold bg-green-100 text-green-800">✅ True Candidate</span>';
+        } else if (!group.has_spike_data) {
+          verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 text-gray-600">⚠ No spike data</span>';
+        } else if (group.spike_pct >= SPIKE_RUN_PCT) {
+          verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">🚫 Spike risk</span>';
+        } else if (group.projected_peak_cpu > PROJECTED_PEAK_LIMIT || group.projected_peak_ram > PROJECTED_PEAK_LIMIT) {
+          verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">⚠ Peak too high</span>' +
+            '<br><span class="text-gray-400 text-xs">proj: ' +
+            (group.projected_peak_cpu > 0 ? group.projected_peak_cpu + '% CPU' : '') +
+            (group.projected_peak_ram > 0 ? ' / ' + group.projected_peak_ram + '% RAM' : '') + '</span>';
+        } else {
+          verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">⚠ Review</span>';
+        }
+
         row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${group.job_name}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.project_name}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(group.job_name)}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(group.project_name)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.resource_class}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.avg_cpu.toFixed(1)}%</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.avg_ram.toFixed(1)}%</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">${spikeCell}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.total_credits.toFixed(0)}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm ${group.suggested_class !== group.resource_class ? 'text-green-600 font-medium' : 'text-gray-500'}">${group.suggested_class}</td>
+          <td class="px-6 py-4 whitespace-nowrap text-sm">${verdictCell}</td>
         `;
-        
+
         tableBody.appendChild(row);
       });
     }
