@@ -1667,80 +1667,42 @@
     }
     
     function downloadOverprovisionedReport() {
-      // Identify overprovisioned jobs
-      const overprovisionedJobs = parsedData.filter(job => {
-        return job.MEDIAN_CPU_UTILIZATION_PCT >= OVERPROVISIONING_THRESHOLD ||
-               job.MEDIAN_RAM_UTILIZATION_PCT >= OVERPROVISIONING_THRESHOLD;
-      });
-      
-      if (overprovisionedJobs.length === 0) {
-        alert('No Underprovisioned jobs found.');
+      // Use pre-computed groups, filtered by current selection
+      var groups = overprovAllGroups;
+      if (overprovCurrentFilter === 'true') {
+        groups = groups.filter(g => g.candidate_type === 'true');
+      } else if (overprovCurrentFilter === 'risky') {
+        groups = groups.filter(g => g.candidate_type === 'risky');
+      }
+
+      if (groups.length === 0) {
+        alert('No underprovisioned jobs match the current filter.');
         return;
       }
-      
-      // Group by job name and project
-      const jobGroups = {};
-      overprovisionedJobs.forEach(job => {
-        const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
-        if (!jobGroups[key]) {
-          jobGroups[key] = {
-            job_name: job.JOB_NAME,
-            project_name: job.PROJECT_NAME,
-            workflow_name: job.WORKFLOW_NAME,
-            resource_class: job.RESOURCE_CLASS,
-            total_credits: 0,
-            total_runs: 0,
-            total_seconds: 0,
-            cpuValues: [],
-            ramValues: [],
-            suggested_class: ''
-          };
-        }
-        
-        jobGroups[key].total_credits += job.TOTAL_CREDITS;
-        jobGroups[key].total_runs += 1;
-        jobGroups[key].total_seconds += job.JOB_RUN_SECONDS;
-        jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
-        jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
-      });
-      
-      // Calculate averages and suggested classes
-      const reportData = Object.values(jobGroups).map(group => {
-        const avg_cpu = _.mean(group.cpuValues);
-        const avg_ram = _.mean(group.ramValues);
-        const suggested_class = getUpgradedResourceClass(group.resource_class, avg_cpu, avg_ram);
-        
+
+      const reportData = groups.map(group => {
         return {
           job_name: group.job_name,
           project_name: group.project_name,
-          workflow_name: group.workflow_name,
           resource_class: group.resource_class,
-          avg_cpu_pct: avg_cpu.toFixed(1),
-          avg_ram_pct: avg_ram.toFixed(1),
+          avg_cpu_pct: group.avg_cpu.toFixed(1),
+          avg_ram_pct: group.avg_ram.toFixed(1),
           total_credits: group.total_credits.toFixed(0),
-          total_runs: group.total_runs,
-          avg_seconds_per_run: (group.total_seconds / group.total_runs).toFixed(1),
-          suggested_class: suggested_class,
-          bottleneck: avg_cpu > avg_ram ? 'CPU' : 'RAM'
+          total_runs: group.count,
+          suggested_class: group.suggested_class,
+          high_util_run_pct: group.high_util_pct !== null ? group.high_util_pct + '%' : 'no data',
+          bottleneck: group.avg_cpu > group.avg_ram ? 'CPU' : 'RAM',
+          verdict: group.candidate_type === 'true' ? 'TRUE CANDIDATE' : 'NEEDS REVIEW'
         };
       });
-      
-      // Sort by highest utilization 
-      reportData.sort((a, b) => {
-        const maxA = Math.max(parseFloat(a.avg_cpu_pct), parseFloat(a.avg_ram_pct));
-        const maxB = Math.max(parseFloat(b.avg_cpu_pct), parseFloat(b.avg_ram_pct));
-        return maxB - maxA;
-      });
-      
-      // Convert to CSV
+
       const csv = Papa.unparse(reportData);
-      
-      // Create download link
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-overprovisioned-jobs.csv');
+      var filterSuffix = overprovCurrentFilter !== 'all' ? '-' + overprovCurrentFilter + '-candidates' : '';
+      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-overprovisioned-jobs' + filterSuffix + '.csv');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -2128,78 +2090,45 @@
     }
 
     function downloadUtilizationReport() {
-      // Identify underutilized jobs
-      const underutilizedJobs = parsedData.filter(job => {
-        return job.MEDIAN_CPU_UTILIZATION_PCT <= UNDERUTILIZATION_THRESHOLD &&
-               job.MEDIAN_RAM_UTILIZATION_PCT <= UNDERUTILIZATION_THRESHOLD;
-      });
-      
-      if (underutilizedJobs.length === 0) {
-        alert('No underutilized jobs found.');
+      // Use pre-computed groups, filtered by current selection
+      var groups = underutilAllGroups;
+      if (underutilCurrentFilter === 'true') {
+        groups = groups.filter(g => g.candidate_type === 'true');
+      } else if (underutilCurrentFilter === 'risky') {
+        groups = groups.filter(g => g.candidate_type === 'risky');
+      }
+
+      if (groups.length === 0) {
+        alert('No underutilized jobs match the current filter.');
         return;
       }
-      
-      // Group by job name and project
-      const jobGroups = {};
-      underutilizedJobs.forEach(job => {
-        const key = `${job.JOB_NAME}|${job.PROJECT_NAME}|${job.RESOURCE_CLASS}`;
-        if (!jobGroups[key]) {
-          jobGroups[key] = {
-            job_name: job.JOB_NAME,
-            project_name: job.PROJECT_NAME,
-            workflow_name: job.WORKFLOW_NAME,
-            resource_class: job.RESOURCE_CLASS,
-            total_credits: 0,
-            total_runs: 0,
-            total_seconds: 0,
-            cpuValues: [],
-            ramValues: [],
-            suggested_class: ''
-          };
-        }
-        
-        jobGroups[key].total_credits += job.TOTAL_CREDITS;
-        jobGroups[key].total_runs += 1;
-        jobGroups[key].total_seconds += job.JOB_RUN_SECONDS;
-        jobGroups[key].cpuValues.push(job.MEDIAN_CPU_UTILIZATION_PCT);
-        jobGroups[key].ramValues.push(job.MEDIAN_RAM_UTILIZATION_PCT);
-      });
-      
-      // Calculate averages and suggested classes
-      const reportData = Object.values(jobGroups).map(group => {
-        const avg_cpu = _.mean(group.cpuValues);
-        const avg_ram = _.mean(group.ramValues);
-        const suggested_class = getSuggestedResourceClass(group.resource_class, avg_cpu, avg_ram);
-        const estimated_savings = suggested_class !== group.resource_class ? 
-          Math.round(group.total_credits * 0.5) : 0;
-        
+
+      const reportData = groups.map(group => {
         return {
           job_name: group.job_name,
           project_name: group.project_name,
-          workflow_name: group.workflow_name,
           resource_class: group.resource_class,
-          avg_cpu_pct: avg_cpu.toFixed(1),
-          avg_ram_pct: avg_ram.toFixed(1),
+          avg_cpu_pct: group.avg_cpu.toFixed(1),
+          avg_ram_pct: group.avg_ram.toFixed(1),
           total_credits: group.total_credits.toFixed(0),
-          total_runs: group.total_runs,
-          avg_seconds_per_run: (group.total_seconds / group.total_runs).toFixed(1),
-          suggested_class: suggested_class,
-          estimated_credit_savings: estimated_savings
+          total_runs: group.count,
+          suggested_class: group.suggested_class,
+          spike_pct: group.spike_pct !== null ? group.spike_pct + '%' : 'no data',
+          max_cpu_observed: group.max_cpu_observed !== null ? group.max_cpu_observed.toFixed(0) + '%' : '',
+          max_ram_observed: group.max_ram_observed !== null ? group.max_ram_observed.toFixed(0) + '%' : '',
+          projected_peak_cpu: group.projected_peak_cpu > 0 ? group.projected_peak_cpu + '%' : '',
+          projected_peak_ram: group.projected_peak_ram > 0 ? group.projected_peak_ram + '%' : '',
+          verdict: group.candidate_type === 'true' ? 'TRUE CANDIDATE' : 'NEEDS REVIEW'
         };
       });
-      
-      // Sort by potential savings
-      reportData.sort((a, b) => parseFloat(b.total_credits) - parseFloat(a.total_credits));
-      
-      // Convert to CSV
+
       const csv = Papa.unparse(reportData);
-      
-      // Create download link
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
       link.href = url;
-      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-underutilized-jobs.csv');
+      var filterSuffix = underutilCurrentFilter !== 'all' ? '-' + underutilCurrentFilter + '-candidates' : '';
+      link.setAttribute('download', (currentFileBaseName ? currentFileBaseName + '-' : '') + 'circleci-underutilized-jobs' + filterSuffix + '.csv');
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
