@@ -112,21 +112,31 @@
           <p class="text-xs text-gray-400 mt-2">GPU Gen2: <code class="bg-gray-100 px-1 rounded">gpu.nvidia.small.gen2</code> — NVIDIA A10G (24 GiB) replaces Tesla P4 (16 GiB)</p>
         </div>
 
-        <div class="grid grid-cols-1 md:grid-cols-3 divide-y md:divide-y-0 md:divide-x divide-gray-200">
-          <div class="px-5 py-4">
+        <div class="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
+          <div class="px-4 py-4">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Gen1 Job Types Found</p>
-            <p id="gen2-eligible-count" class="text-3xl font-bold text-gray-900">—</p>
-            <p class="text-xs text-gray-400 mt-1">Docker/Machine Linux with a Gen2 equivalent</p>
+            <p id="gen2-eligible-count" class="text-2xl font-bold text-gray-900">—</p>
+            <p class="text-xs text-gray-400 mt-1">Machine/Remote Docker with Gen2 path</p>
           </div>
-          <div class="px-5 py-4">
+          <div class="px-4 py-4">
             <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Cost Impact Breakdown</p>
-            <p id="gen2-total-savings" class="text-2xl font-bold text-green-600">—</p>
-            <p class="text-xs text-gray-400 mt-1">xlarge/2xlarge save · medium/large cost more</p>
+            <p id="gen2-total-savings" class="text-lg font-bold text-green-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">xlarge/2xlarge save · med/lg cost more</p>
           </div>
-          <div class="px-5 py-4">
+          <div class="px-4 py-4">
+            <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Total Time Saved on Gen2</p>
+            <p id="gen2-total-time-saved" class="text-2xl font-bold text-indigo-600">—</p>
+            <p id="gen2-total-time-saved-detail" class="text-xs text-gray-400 mt-1">Projected across all eligible builds</p>
+          </div>
+          <div class="px-4 py-4">
+            <p class="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1">Docker → Machine Potential</p>
+            <p id="gen2-docker-potential" class="text-2xl font-bold text-amber-600">—</p>
+            <p id="gen2-docker-potential-detail" class="text-xs text-gray-400 mt-1">Docker jobs that could use Gen2 if on machine</p>
+          </div>
+          <div class="px-4 py-4">
             <p class="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-1">Already on Gen2</p>
-            <p id="gen2-already-count" class="text-3xl font-bold text-purple-600">—</p>
-            <p class="text-xs text-gray-400 mt-1">Jobs already on Gen2 / Arm / newer resources</p>
+            <p id="gen2-already-count" class="text-2xl font-bold text-purple-600">—</p>
+            <p class="text-xs text-gray-400 mt-1">Jobs on Gen2 / Arm / newer</p>
           </div>
         </div>
         <div class="border-t border-gray-200 px-6 pt-5 pb-6">
@@ -739,6 +749,64 @@
         });
       });
 
+      // ── Pass 3: Docker potential (not eligible for Gen2, but could be) ────
+      // Docker executor jobs on medium/large/xlarge/2xlarge resource classes
+      // can't use Gen2 today, but if migrated to machine executor they could.
+      // Calculate approximate time savings to show the opportunity.
+      var dockerPotential = { job_groups: 0, total_credits: 0, total_time_saved: 0, total_runs: 0 };
+      var dockerGroups = {};
+      data.forEach(function(job) {
+        var executor = (job.EXECUTOR || '').toLowerCase().trim();
+        if (executor !== 'docker') return;
+        var rc = (job.RESOURCE_CLASS || '').toLowerCase().trim();
+        if (!GEN1_TO_LINUXVM_GEN2[rc]) return;
+
+        var dkey = 'docker||' + (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') + '||' + rc;
+        if (!dockerGroups[dkey]) {
+          dockerGroups[dkey] = {
+            resource_class: rc,
+            total_credits: 0, total_runs: 0, total_seconds: 0,
+            cpu_vals: [],
+          };
+        }
+        var dg = dockerGroups[dkey];
+        dg.total_credits += (job.TOTAL_CREDITS || 0);
+        dg.total_runs    += 1;
+        dg.total_seconds += (job.JOB_RUN_SECONDS || 0);
+        var dcpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
+        if (!isNaN(dcpu)) dg.cpu_vals.push(dcpu);
+      });
+
+      Object.values(dockerGroups).forEach(function(dg) {
+        var mapping = GEN1_TO_LINUXVM_GEN2[dg.resource_class];
+        if (!mapping) return;
+        var gen2Info = LINUXVM_GEN2[mapping.gen2];
+        if (!gen2Info) return;
+
+        var avg_cpu = dg.cpu_vals.length > 0 ? _.mean(dg.cpu_vals) : 30; // default conservative
+        var avg_sec = dg.total_runs > 0 ? dg.total_seconds / dg.total_runs : 0;
+        if (avg_sec <= 0) return;
+
+        var P = Math.min((avg_cpu / 100) * 0.85, 0.92);
+        var speedup = 1 / (1 - P + P / gen2IpcGain);
+        var projectedSec = avg_sec / speedup;
+        var timeSavedPerRun = avg_sec - projectedSec;
+        var totalTimeSaved = timeSavedPerRun * dg.total_runs;
+
+        dockerPotential.job_groups++;
+        dockerPotential.total_credits += dg.total_credits;
+        dockerPotential.total_time_saved += totalTimeSaved;
+        dockerPotential.total_runs += dg.total_runs;
+      });
+
+      // ── Calculate total time saved across eligible opps ────────────────
+      var totalTimeSavedSec = 0;
+      opps.forEach(function(o) {
+        if (o.speed_proj && o.speed_proj.total_time_saved) {
+          totalTimeSavedSec += o.speed_proj.total_time_saved;
+        }
+      });
+
       // Sort by highest credit consumption (most impactful first)
       opps.sort(function(a,b){ return b.total_credits - a.total_credits; });
 
@@ -746,6 +814,8 @@
         opportunities:        opps,
         already_gen2_count:   alreadyGen2Count,
         already_gen2_credits: Math.round(alreadyGen2Credits),
+        total_time_saved_sec: Math.round(totalTimeSavedSec),
+        docker_potential:     dockerPotential,
       };
     }
 
@@ -828,6 +898,33 @@
         recCount + ' recommended · ' + (opps.length - recCount) + ' needs review';
       document.getElementById('gen2-already-count').textContent =
         result.already_gen2_count.toLocaleString();
+
+      // Total time saved card
+      var tts = result.total_time_saved_sec;
+      var ttsLabel;
+      if (tts >= 3600) ttsLabel = (tts / 3600).toFixed(1) + ' hrs';
+      else if (tts >= 60) ttsLabel = Math.round(tts / 60) + ' min';
+      else ttsLabel = tts + 's';
+      document.getElementById('gen2-total-time-saved').textContent = ttsLabel;
+      var totalRuns = opps.reduce(function(s,o){ return s + o.total_runs; }, 0);
+      document.getElementById('gen2-total-time-saved-detail').textContent =
+        'Across ' + totalRuns.toLocaleString() + ' builds · speed-adjusted estimate';
+
+      // Docker → Machine potential card
+      var dp = result.docker_potential;
+      if (dp.job_groups > 0) {
+        var dpTime = dp.total_time_saved;
+        var dpLabel;
+        if (dpTime >= 3600) dpLabel = '~' + (dpTime / 3600).toFixed(1) + ' hrs';
+        else if (dpTime >= 60) dpLabel = '~' + Math.round(dpTime / 60) + ' min';
+        else dpLabel = '~' + Math.round(dpTime) + 's';
+        document.getElementById('gen2-docker-potential').textContent = dpLabel;
+        document.getElementById('gen2-docker-potential-detail').textContent =
+          dp.job_groups + ' Docker job groups · ' + dp.total_runs.toLocaleString() + ' builds could use Gen2 on machine';
+      } else {
+        document.getElementById('gen2-docker-potential').textContent = '0';
+        document.getElementById('gen2-docker-potential-detail').textContent = 'No Docker jobs on eligible resource classes';
+      }
 
       // Show filter buttons if there are opportunities
       var filterBtns = document.getElementById('gen2-filter-buttons');
