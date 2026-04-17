@@ -177,7 +177,7 @@
             <table class="min-w-full divide-y divide-gray-100 text-sm">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Config Path</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Project / Workflow / Job</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Resource Class</th>
                   <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Avg CPU</th>
                   <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Avg RAM</th>
@@ -294,7 +294,7 @@
               <table id="underutilized-jobs-table" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Config Path</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project / Workflow / Job</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
@@ -350,7 +350,7 @@
               <table id="overprovisioned-jobs-table" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Config Path</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project / Workflow / Job</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
@@ -957,7 +957,7 @@
 
     // ── downloadGen2CSV ──────────────────────────────────────────────────────
     function downloadGen2CSV(opps) {
-      var headers = ['Project','Job Name','Workflow','Resource Class','Gen1 cr/min',
+      var headers = ['Project','Workflow','Job Name','Resource Class','Gen1 cr/min',
         'Gen2 Class','Gen2 cr/min','Rate % Change','Avg CPU','Avg RAM',
         'Total Credits','Total Runs','Avg Sec/Run','Projected Credits (rate only)',
         'Est % Faster','Projected Sec/Run','Time Saved/Run (s)','Total Time Saved (s)',
@@ -966,8 +966,8 @@
         var sp = o.speed_proj;
         return [
           '"' + (o.project || '').replace(/"/g,'""') + '"',
-          '"' + (o.job_name || '').replace(/"/g,'""') + '"',
           '"' + (o.workflow || '').replace(/"/g,'""') + '"',
+          '"' + (o.job_name || '').replace(/"/g,'""') + '"',
           o.resource_class,
           o.gen1_cpm,
           o.gen2_class,
@@ -2218,8 +2218,9 @@
 
       const reportData = groups.map(group => {
         return {
-          job_name: group.job_name,
           project_name: group.project_name,
+          workflow_name: group.workflow_name || '',
+          job_name: group.job_name,
           resource_class: group.resource_class,
           avg_cpu_pct: group.avg_cpu.toFixed(1),
           avg_ram_pct: group.avg_ram.toFixed(1),
