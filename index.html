@@ -177,8 +177,7 @@
             <table class="min-w-full divide-y divide-gray-100 text-sm">
               <thead class="bg-gray-50">
                 <tr>
-                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Project</th>
-                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Workflow</th>
+                  <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Config Path</th>
                   <th class="px-3 py-2 text-left text-xs font-semibold text-gray-500 uppercase">Resource Class</th>
                   <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Avg CPU</th>
                   <th class="px-3 py-2 text-right text-xs font-semibold text-gray-500 uppercase">Avg RAM</th>
@@ -295,8 +294,7 @@
               <table id="underutilized-jobs-table" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Name</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Config Path</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
@@ -352,8 +350,7 @@
               <table id="overprovisioned-jobs-table" class="min-w-full divide-y divide-gray-200">
                 <thead class="bg-gray-50">
                   <tr>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Job Name</th>
-                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Project</th>
+                    <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Config Path</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Resource Class</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. CPU %</th>
                     <th scope="col" class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Avg. RAM %</th>
@@ -1277,12 +1274,14 @@
           '<div id="' + popoverId + '" class="hidden mt-2 p-3 bg-blue-50 rounded-lg text-xs text-gray-700 border border-blue-200">' +
           popoverLines.join('') + '</div>';
 
-        var workflow = o.workflow || '\u2014';
+        var workflow = o.workflow || '';
+        var configPath = '<span class="text-gray-400">' + escapeHtml(o.project) + '</span>' +
+          (workflow ? ' <span class="text-gray-300">→</span> <span class="text-gray-500">' + escapeHtml(workflow) + '</span>' : '') +
+          ' <span class="text-gray-300">→</span> <span class="text-gray-700 font-medium">' + escapeHtml(o.job_name) + '</span>';
         var row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 text-sm align-top';
         row.innerHTML =
-          '<td class="px-3 py-3 text-gray-500 text-xs">' + escapeHtml(o.project) + '</td>' +
-          '<td class="px-3 py-3 text-gray-500 text-xs">' + escapeHtml(workflow) + '</td>' +
+          '<td class="px-3 py-3 text-xs leading-relaxed" style="max-width:320px">' + configPath + '</td>' +
           '<td class="px-3 py-3"><span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">' +
             o.resource_class + '</span>' +
             '<span class="text-xs text-gray-400 ml-1">' + o.gen1_cpm + 'c/min</span></td>' +
@@ -1616,6 +1615,7 @@
           jobGroups[key] = {
             job_name: job.JOB_NAME,
             project_name: job.PROJECT_NAME,
+            workflow_name: job.WORKFLOW_NAME || '',
             resource_class: job.RESOURCE_CLASS,
             total_credits: 0,
             cpuValues: [],
@@ -1625,6 +1625,9 @@
             highUtilRunCount: 0,
             count: 0
           };
+        }
+        if (job.WORKFLOW_NAME && !jobGroups[key].workflow_name) {
+          jobGroups[key].workflow_name = job.WORKFLOW_NAME;
         }
 
         jobGroups[key].total_credits += job.TOTAL_CREDITS;
@@ -1710,7 +1713,7 @@
       tableBody.innerHTML = '';
 
       if (groups.length === 0) {
-        tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-gray-400 py-6 text-sm">No jobs match this filter.</td></tr>';
+        tableBody.innerHTML = '<tr><td colspan="6" class="text-center text-gray-400 py-6 text-sm">No jobs match this filter.</td></tr>';
         return;
       }
 
@@ -1721,9 +1724,13 @@
         const cpuClass = group.avg_cpu >= OVERPROVISIONING_THRESHOLD ? 'text-amber-600 font-medium' : 'text-gray-500';
         const ramClass = group.avg_ram >= OVERPROVISIONING_THRESHOLD ? 'text-amber-600 font-medium' : 'text-gray-500';
 
+        var wfOp = group.workflow_name || '';
+        var configPathOverprov = '<span class="text-gray-400">' + escapeHtml(group.project_name) + '</span>' +
+          (wfOp ? ' <span class="text-gray-300">→</span> <span class="text-gray-500">' + escapeHtml(wfOp) + '</span>' : '') +
+          ' <span class="text-gray-300">→</span> <span class="text-gray-700 font-medium">' + escapeHtml(group.job_name) + '</span>';
+
         row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(group.job_name)}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(group.project_name)}</td>
+          <td class="px-6 py-4 text-xs leading-relaxed" style="max-width:320px">${configPathOverprov}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.resource_class}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm ${cpuClass}">${group.avg_cpu.toFixed(1)}%</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm ${ramClass}">${group.avg_ram.toFixed(1)}%</td>
@@ -1779,8 +1786,9 @@
 
       const reportData = groups.map(group => {
         return {
-          job_name: group.job_name,
           project_name: group.project_name,
+          workflow_name: group.workflow_name || '',
+          job_name: group.job_name,
           resource_class: group.resource_class,
           avg_cpu_pct: group.avg_cpu.toFixed(1),
           avg_ram_pct: group.avg_ram.toFixed(1),
@@ -1961,6 +1969,7 @@
           jobGroups[key] = {
             job_name: job.JOB_NAME,
             project_name: job.PROJECT_NAME,
+            workflow_name: job.WORKFLOW_NAME || '',
             resource_class: job.RESOURCE_CLASS,
             executor: job.EXECUTOR || '',
             total_credits: 0,
@@ -1971,6 +1980,9 @@
             spikeRunCount: 0,
             count: 0
           };
+        }
+        if (job.WORKFLOW_NAME && !jobGroups[key].workflow_name) {
+          jobGroups[key].workflow_name = job.WORKFLOW_NAME;
         }
 
         jobGroups[key].total_credits += job.TOTAL_CREDITS;
@@ -2124,9 +2136,13 @@
           verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">⚠ Review</span>';
         }
 
+        var wf = group.workflow_name || '';
+        var configPathUndeutil = '<span class="text-gray-400">' + escapeHtml(group.project_name) + '</span>' +
+          (wf ? ' <span class="text-gray-300">→</span> <span class="text-gray-500">' + escapeHtml(wf) + '</span>' : '') +
+          ' <span class="text-gray-300">→</span> <span class="text-gray-700 font-medium">' + escapeHtml(group.job_name) + '</span>';
+
         row.innerHTML = `
-          <td class="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900">${escapeHtml(group.job_name)}</td>
-          <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${escapeHtml(group.project_name)}</td>
+          <td class="px-6 py-4 text-xs leading-relaxed" style="max-width:320px">${configPathUndeutil}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.resource_class}</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.avg_cpu.toFixed(1)}%</td>
           <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-500">${group.avg_ram.toFixed(1)}%</td>
