@@ -2835,6 +2835,36 @@
       errorElement.classList.remove('hidden');
       document.getElementById('loading').classList.add('hidden');
     }
+
+    // ── Fixed-position tooltip helper ────────────────────────────────────────
+    // CSS tooltips inside overflow:hidden / overflow-x:auto containers get clipped
+    // regardless of z-index. This repositions them as position:fixed so they
+    // escape the overflow boundary entirely.
+    function showTooltip(el) {
+      var tip = el.querySelector('.tt');
+      if (!tip) return;
+      var rect = el.getBoundingClientRect();
+      tip.style.display = 'block';
+      tip.style.position = 'fixed';
+      tip.style.zIndex = '9999';
+      // Prefer below; flip above if too close to bottom edge
+      var spaceBelow = window.innerHeight - rect.bottom;
+      if (spaceBelow < 180) {
+        tip.style.top = (rect.top - tip.offsetHeight - 8) + 'px';
+      } else {
+        tip.style.top = (rect.bottom + 6) + 'px';
+      }
+      // Clamp left so tooltip doesn't run off right edge
+      var left = Math.min(rect.left, window.innerWidth - 300);
+      tip.style.left = Math.max(8, left) + 'px';
+      tip.style.opacity = '1';
+    }
+    function hideTooltip(el) {
+      var tip = el.querySelector('.tt');
+      if (!tip) return;
+      tip.style.opacity = '0';
+      tip.style.display = 'none';
+    }
   </script>
 </body>
 </html>
