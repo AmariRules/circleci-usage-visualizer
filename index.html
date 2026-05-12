@@ -76,7 +76,7 @@
             <div>
               <h2 class="text-xl font-bold tracking-tight">⚡ Resource Classes Available for Gen2 Optimization</h2>
               <p class="text-sm mt-1" style="color:#90b8d4">
-                Jobs eligible to migrate from Gen1 to Gen2 — includes Arm (Docker/Machine) and LinuxVM Gen2 (x86).
+                Jobs eligible to migrate from Gen1 to Gen2 — includes Arm (Docker/Machine), LinuxVM Gen2 (x86), and Docker Gen2 (x86).
                 Standard CircleCI pricing — verify against your plan.
               </p>
             </div>
@@ -91,6 +91,7 @@
             <a href="https://circleci.com/docs/reference/configuration-reference/#linuxvm-gen2-execution-environment" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">View Gen2 Docs →</a>
           </div>
           <p class="text-xs text-gray-400 mb-3">Machine &amp; Remote Docker only. Gen2 VMs have faster CPUs with improved single-thread performance. xlarge+ sizes are <strong class="text-green-600">cheaper</strong> on Gen2.</p>
+
           <div class="overflow-x-auto">
             <table class="text-xs w-full max-w-lg">
               <thead>
@@ -112,6 +113,38 @@
           <p class="text-xs text-gray-400 mt-2">GPU Gen2: <code class="bg-gray-100 px-1 rounded">gpu.nvidia.small.gen2</code> — NVIDIA A10G (24 GiB) replaces Tesla P4 (16 GiB)</p>
         </div>
 
+        <!-- Docker Gen2 (x86) Pricing Comparison — GA May 4, 2026 -->
+        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
+          <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+            <h3 class="font-semibold text-gray-700 text-sm">Docker Gen2 (x86) — Credit Rate Comparison</h3>
+            <span class="text-xs px-2 py-0.5 rounded font-semibold" style="background:#00b140;color:#fff">NEW — GA May 2026</span>
+          </div>
+          <p class="text-xs text-gray-400 mb-3">Docker executor only (paid plans). Gen2 Docker is benchmarked at <strong class="text-green-600">1.4x faster</strong> than Gen1. All sizes +20% cr/min but speed gains offset the higher rate. Not supported: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, CircleCI Server.</p>
+          <div class="overflow-x-auto">
+            <table class="text-xs w-full max-w-2xl">
+              <thead>
+                <tr class="border-b border-gray-200">
+                  <th class="px-3 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">CPU</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">RAM</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen1 (cr/min)</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen2 (cr/min)</th>
+                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
+                </tr>
+              </thead>
+              <tbody class="divide-y divide-gray-100">
+                <tr><td class="px-3 py-1.5 font-mono">small.gen2</td><td class="px-3 py-1.5 text-right">1</td><td class="px-3 py-1.5 text-right">2 GB</td><td class="px-3 py-1.5 text-right">5</td><td class="px-3 py-1.5 text-right">6</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">medium.gen2</td><td class="px-3 py-1.5 text-right">2</td><td class="px-3 py-1.5 text-right">4 GB</td><td class="px-3 py-1.5 text-right">10</td><td class="px-3 py-1.5 text-right">12</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">medium+.gen2</td><td class="px-3 py-1.5 text-right">3</td><td class="px-3 py-1.5 text-right">6 GB</td><td class="px-3 py-1.5 text-right">15</td><td class="px-3 py-1.5 text-right">18</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">large.gen2</td><td class="px-3 py-1.5 text-right">4</td><td class="px-3 py-1.5 text-right">8 GB</td><td class="px-3 py-1.5 text-right">20</td><td class="px-3 py-1.5 text-right">24</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">xlarge.gen2</td><td class="px-3 py-1.5 text-right">8</td><td class="px-3 py-1.5 text-right">16 GB</td><td class="px-3 py-1.5 text-right">40</td><td class="px-3 py-1.5 text-right">48</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">2xlarge.gen2</td><td class="px-3 py-1.5 text-right">16</td><td class="px-3 py-1.5 text-right">32 GB</td><td class="px-3 py-1.5 text-right">80</td><td class="px-3 py-1.5 text-right">96</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                <tr><td class="px-3 py-1.5 font-mono">2xlarge+.gen2</td><td class="px-3 py-1.5 text-right">20</td><td class="px-3 py-1.5 text-right">40 GB</td><td class="px-3 py-1.5 text-right">100</td><td class="px-3 py-1.5 text-right">120</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
         <div class="grid grid-cols-2 md:grid-cols-5 divide-y md:divide-y-0 md:divide-x divide-gray-200">
           <div class="px-4 py-4">
             <p class="text-xs font-semibold text-gray-400 uppercase tracking-wide mb-1">Gen1 Job Types Found</p>
@@ -131,7 +164,7 @@
           <div class="px-4 py-4">
             <p class="text-xs font-semibold text-amber-500 uppercase tracking-wide mb-1">Docker → Machine Potential</p>
             <p id="gen2-docker-potential" class="text-2xl font-bold text-amber-600">—</p>
-            <p id="gen2-docker-potential-detail" class="text-xs text-gray-400 mt-1">Docker jobs that could use Gen2 if on machine</p>
+            <p id="gen2-docker-potential-detail" class="text-xs text-gray-400 mt-1">Docker job groups eligible for Docker Gen2</p>
           </div>
           <div class="px-4 py-4">
             <p class="text-xs font-semibold text-purple-500 uppercase tracking-wide mb-1">Already on Gen2</p>
@@ -206,10 +239,10 @@
         </div>
         <div class="bg-amber-50 border-t border-amber-200 px-6 py-4 rounded-b-xl">
           <p class="text-xs text-amber-800">
-            <strong>⚠ Before migrating:</strong> LinuxVM Gen2 uses Machine and Remote Docker executors only (not the Docker executor).
-            Gen2 VMs have faster CPUs with improved single-thread performance.
-            <strong>medium and large are more expensive on Gen2</strong> (+80% cr/min) but have better CPU IPC.
-            xlarge and 2xlarge are cheaper (-28% and -4% respectively).
+            <strong>⚠ Before migrating:</strong> LinuxVM Gen2 uses Machine and Remote Docker executors.
+            Docker Gen2 (x86) is now GA for Docker executor (paid plans, May 2026). Gen2 Docker is 1.4x faster at +20% cr/min.
+            LinuxVM Gen2: <strong>medium and large are +80% cr/min</strong> but have better CPU IPC; xlarge and 2xlarge are cheaper (-28% and -4%).
+            Docker Gen2 not supported on: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, or CircleCI Server.
             Test in a feature branch first. Verify against your plan pricing.
           </p>
         </div>
@@ -528,6 +561,37 @@
       'gpu.nvidia.small': { gen2: 'gpu.nvidia.small.gen2', model: 'NVIDIA A10G', vram: '24 GiB' },
     };
 
+    // ── Docker Gen2 (x86) Resource Classes — GA May 4, 2026 ──────────────────
+    // Docker executor now has Gen2 x86 resource classes (paid plans only).
+    // NOT supported: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, Server.
+    const DOCKER_GEN1 = {
+      'small':    { cpm: 5,   cpu: 1,  ram: 2  },
+      'medium':   { cpm: 10,  cpu: 2,  ram: 4  },
+      'medium+':  { cpm: 15,  cpu: 3,  ram: 6  },
+      'large':    { cpm: 20,  cpu: 4,  ram: 8  },
+      'xlarge':   { cpm: 40,  cpu: 8,  ram: 16 },
+      '2xlarge':  { cpm: 80,  cpu: 16, ram: 32 },
+      '2xlarge+': { cpm: 100, cpu: 20, ram: 40 },
+    };
+    const DOCKER_GEN2 = {
+      'small.gen2':    { cpm: 6,   cpu: 1,  ram: 2  },
+      'medium.gen2':   { cpm: 12,  cpu: 2,  ram: 4  },
+      'medium+.gen2':  { cpm: 18,  cpu: 3,  ram: 6  },
+      'large.gen2':    { cpm: 24,  cpu: 4,  ram: 8  },
+      'xlarge.gen2':   { cpm: 48,  cpu: 8,  ram: 16 },
+      '2xlarge.gen2':  { cpm: 96,  cpu: 16, ram: 32 },
+      '2xlarge+.gen2': { cpm: 120, cpu: 20, ram: 40 },
+    };
+    const GEN1_TO_DOCKER_GEN2 = {
+      'small':    { gen2: 'small.gen2',    pctChange: +20  },  //  5 → 6
+      'medium':   { gen2: 'medium.gen2',   pctChange: +20  },  // 10 → 12
+      'medium+':  { gen2: 'medium+.gen2',  pctChange: +20  },  // 15 → 18
+      'large':    { gen2: 'large.gen2',    pctChange: +20  },  // 20 → 24
+      'xlarge':   { gen2: 'xlarge.gen2',   pctChange: +20  },  // 40 → 48
+      '2xlarge':  { gen2: '2xlarge.gen2',  pctChange: +20  },  // 80 → 96
+      '2xlarge+': { gen2: '2xlarge+.gen2', pctChange: +20  },  // 100 → 120
+    };
+
     let gen2SavingsChart = null;
     let gen2SpeedChart   = null;
 
@@ -746,53 +810,121 @@
         });
       });
 
-      // ── Pass 3: Docker potential (not eligible for Gen2, but could be) ────
-      // Docker executor jobs on medium/large/xlarge/2xlarge resource classes
-      // can't use Gen2 today, but if migrated to machine executor they could.
-      // Calculate approximate time savings to show the opportunity.
+      // ── Pass 3: Docker Gen2 (x86) — GA May 4, 2026 ──────────────────────
+      // Docker executor jobs can now migrate to Gen2 Docker x86 resource classes.
+      // All sizes +20% credits/min but 1.4x faster (per CircleCI benchmarks).
+      // Docker Gen2 pricing vs Gen1:
+      //   small    5 →  6  (+20%)    medium  10 → 12  (+20%)
+      //   medium+ 15 → 18  (+20%)    large   20 → 24  (+20%)
+      //   xlarge  40 → 48  (+20%)    2xlarge 80 → 96  (+20%)
+      //   2xlarge+ 100 → 120 (+20%)
+      // NOT supported: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, Server.
       var dockerPotential = { job_groups: 0, total_credits: 0, total_time_saved: 0, total_runs: 0 };
       var dockerGroups = {};
       data.forEach(function(job) {
         var executor = (job.EXECUTOR || '').toLowerCase().trim();
         if (executor !== 'docker') return;
         var rc = (job.RESOURCE_CLASS || '').toLowerCase().trim();
-        if (!GEN1_TO_LINUXVM_GEN2[rc]) return;
+        if (isGen2Resource(executor, rc)) return; // already on Gen2
+        if (!GEN1_TO_DOCKER_GEN2[rc]) return;
 
-        var dkey = 'docker||' + (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') + '||' + rc;
+        var dkey = 'docker-gen2||' + (job.PROJECT_NAME || '') + '||' + (job.JOB_NAME || '') + '||' + rc;
         if (!dockerGroups[dkey]) {
           dockerGroups[dkey] = {
+            project: job.PROJECT_NAME || 'unknown',
+            job_name: job.JOB_NAME    || 'unknown',
+            workflow: job.WORKFLOW_NAME || '',
             resource_class: rc,
+            executor: 'docker',
             total_credits: 0, total_runs: 0, total_seconds: 0,
-            cpu_vals: [],
+            cpu_vals: [], ram_vals: [],
           };
+        }
+        if (job.WORKFLOW_NAME && !dockerGroups[dkey].workflow) {
+          dockerGroups[dkey].workflow = job.WORKFLOW_NAME;
         }
         var dg = dockerGroups[dkey];
         dg.total_credits += (job.TOTAL_CREDITS || 0);
         dg.total_runs    += 1;
         dg.total_seconds += (job.JOB_RUN_SECONDS || 0);
         var dcpu = parseFloat(job.MEDIAN_CPU_UTILIZATION_PCT);
+        var dram = parseFloat(job.MEDIAN_RAM_UTILIZATION_PCT);
         if (!isNaN(dcpu)) dg.cpu_vals.push(dcpu);
+        if (!isNaN(dram)) dg.ram_vals.push(dram);
       });
 
       Object.values(dockerGroups).forEach(function(dg) {
-        var mapping = GEN1_TO_LINUXVM_GEN2[dg.resource_class];
+        var mapping = GEN1_TO_DOCKER_GEN2[dg.resource_class];
         if (!mapping) return;
-        var gen2Info = LINUXVM_GEN2[mapping.gen2];
-        if (!gen2Info) return;
+        var gen2Info = DOCKER_GEN2[mapping.gen2];
+        var gen1Info = DOCKER_GEN1[dg.resource_class];
+        if (!gen1Info || !gen2Info) return;
 
-        var avg_cpu = dg.cpu_vals.length > 0 ? _.mean(dg.cpu_vals) : 30; // default conservative
+        var avg_cpu = dg.cpu_vals.length > 0 ? _.mean(dg.cpu_vals) : null;
+        var avg_ram = dg.ram_vals.length > 0 ? _.mean(dg.ram_vals) : null;
         var avg_sec = dg.total_runs > 0 ? dg.total_seconds / dg.total_runs : 0;
-        if (avg_sec <= 0) return;
 
-        var P = Math.min((avg_cpu / 100) * 0.85, 0.92);
-        var speedup = 1 / (1 - P + P / gen2IpcGain);
-        var projectedSec = avg_sec / speedup;
-        var timeSavedPerRun = avg_sec - projectedSec;
-        var totalTimeSaved = timeSavedPerRun * dg.total_runs;
+        // Docker Gen2 is +20% cr/min but 1.4x faster per CircleCI benchmarks
+        var savingsPct    = (gen1Info.cpm - gen2Info.cpm) / gen1Info.cpm;
+        var savingsCredits = Math.round(dg.total_credits * savingsPct);
+        var projectedCredits = Math.round(dg.total_credits - savingsCredits);
 
+        // Speed projection: Docker Gen2 benchmarked at 1.4x faster
+        var DOCKER_GEN2_SPEEDUP = 1.40;
+        var speedProj = null;
+        if (avg_sec > 0) {
+          var projectedSec = avg_sec / DOCKER_GEN2_SPEEDUP;
+          var timeSavedPerRun = avg_sec - projectedSec;
+          var totalTimeSaved = timeSavedPerRun * dg.total_runs;
+
+          var gen1CreditsPerRun = (avg_sec / 60) * gen1Info.cpm;
+          var gen2CreditsPerRun = (projectedSec / 60) * gen2Info.cpm;
+          var netCreditDeltaPerRun = gen2CreditsPerRun - gen1CreditsPerRun;
+          var netTotalCreditDelta = Math.round(netCreditDeltaPerRun * dg.total_runs);
+
+          speedProj = {
+            ipc_gain:           DOCKER_GEN2_SPEEDUP,
+            speedup_x:          DOCKER_GEN2_SPEEDUP,
+            pct_faster:         Math.round((1 - 1 / DOCKER_GEN2_SPEEDUP) * 100),
+            projected_sec:      Math.round(projectedSec),
+            time_saved_per_run: Math.round(timeSavedPerRun),
+            total_time_saved:   Math.round(totalTimeSaved),
+            net_credit_delta:   netTotalCreditDelta,
+            net_credits_per_run: parseFloat(gen2CreditsPerRun.toFixed(1)),
+            gen1_credits_per_run: parseFloat(gen1CreditsPerRun.toFixed(1)),
+            is_net_positive:    netTotalCreditDelta < 0,
+          };
+        }
+
+        opps.push({
+          project:           dg.project,
+          job_name:          dg.job_name,
+          workflow:          dg.workflow,
+          resource_class:    dg.resource_class,
+          executor:          'docker',
+          gen1_cpm:          gen1Info.cpm,
+          gen1_cpu:          gen1Info.cpu,
+          total_credits:     Math.round(dg.total_credits),
+          total_runs:        dg.total_runs,
+          avg_sec:           Math.round(avg_sec),
+          avg_cpu:           avg_cpu !== null ? parseFloat(avg_cpu.toFixed(1)) : null,
+          avg_ram:           avg_ram !== null ? parseFloat(avg_ram.toFixed(1)) : null,
+          gen2_class:        mapping.gen2,
+          gen2_cpm:          gen2Info.cpm,
+          gen2_cpu:          gen2Info.cpu,
+          is_approx:         false,
+          savings_pct:       Math.round(savingsPct * 100),
+          savings_credits:   savingsCredits,
+          projected_credits: projectedCredits,
+          speed_proj:        speedProj,
+          migration_type:    'docker-gen2',
+          pct_change:        mapping.pctChange,
+        });
+
+        // Also track Docker potential summary for the card
         dockerPotential.job_groups++;
         dockerPotential.total_credits += dg.total_credits;
-        dockerPotential.total_time_saved += totalTimeSaved;
+        dockerPotential.total_time_saved += (speedProj ? speedProj.total_time_saved : 0);
         dockerPotential.total_runs += dg.total_runs;
       });
 
@@ -823,8 +955,10 @@
 
     // Classify each opportunity as 'recommended' or 'review'
     function classifyGen2Opp(o) {
-      // Recommended: cheaper rate, net-positive speed offset, or GPU upgrade
+      // Recommended: cheaper rate, net-positive speed offset, GPU upgrade, or Docker Gen2 (1.4x faster)
       if (o.migration_type === 'gpu-gen2') return 'recommended';
+      if (o.migration_type === 'docker-gen2' && o.speed_proj && o.speed_proj.is_net_positive) return 'recommended';
+      if (o.migration_type === 'docker-gen2') return 'review'; // +20% cost, speed may not fully offset
       if (o.pct_change <= 0) return 'recommended';                       // xlarge/2xlarge — cheaper
       if (o.speed_proj && o.speed_proj.is_net_positive) return 'recommended'; // speed offsets cost
       return 'review'; // costs more and speed doesn't fully offset
@@ -907,7 +1041,7 @@
       document.getElementById('gen2-total-time-saved-detail').textContent =
         'Across ' + totalRuns.toLocaleString() + ' builds · speed-adjusted estimate';
 
-      // Docker → Machine potential card
+      // Docker Gen2 potential card
       var dp = result.docker_potential;
       if (dp.job_groups > 0) {
         var dpTime = dp.total_time_saved;
@@ -917,7 +1051,7 @@
         else dpLabel = '~' + Math.round(dpTime) + 's';
         document.getElementById('gen2-docker-potential').textContent = dpLabel;
         document.getElementById('gen2-docker-potential-detail').textContent =
-          dp.job_groups + ' Docker job groups · ' + dp.total_runs.toLocaleString() + ' builds could use Gen2 on machine';
+          dp.job_groups + ' Docker job groups · ' + dp.total_runs.toLocaleString() + ' builds could use Docker Gen2';
       } else {
         document.getElementById('gen2-docker-potential').textContent = '0';
         document.getElementById('gen2-docker-potential-detail').textContent = 'No Docker jobs on eligible resource classes';
@@ -1171,8 +1305,8 @@
       body.innerHTML = '';
       if (opps.length === 0) {
         body.innerHTML = '<tr><td colspan="10" class="text-center text-gray-400 py-6 text-sm">' +
-          'No eligible LinuxVM Gen1 jobs found. ' +
-          'Jobs may already be on Gen2, use Docker executor, or executor data is unavailable.</td></tr>';
+          'No eligible Gen1 jobs found. ' +
+          'Jobs may already be on Gen2, or executor data is unavailable.</td></tr>';
         return;
       }
       opps.forEach(function(o, idx) {
@@ -1941,6 +2075,14 @@
       if (resourceClass.startsWith('arm.')) {
         var armKey = resourceClass;
         if (GEN2_RESOURCES[armKey]) return GEN2_RESOURCES[armKey];
+      }
+      // Try Docker Gen2 classes (small.gen2, medium.gen2, etc.)
+      if (resourceClass.includes('.gen2') && DOCKER_GEN2[resourceClass]) {
+        return DOCKER_GEN2[resourceClass];
+      }
+      // Try LinuxVM Gen2 classes
+      if (resourceClass.includes('.gen2') && LINUXVM_GEN2[resourceClass]) {
+        return LINUXVM_GEN2[resourceClass];
       }
       return null;
     }
