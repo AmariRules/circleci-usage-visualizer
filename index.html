@@ -2155,19 +2155,31 @@
         group.max_cpu_observed = group.maxCpuValues.length > 0 ? _.max(group.maxCpuValues) : null;
         group.max_ram_observed = group.maxRamValues.length > 0 ? _.max(group.maxRamValues) : null;
 
-        // Projected peak on target class
+        // P95 of max values — representative peak that isn't skewed by a single outlier.
+        // Used for projected peak calculation instead of absolute max.
+        function percentile95(arr) {
+          if (arr.length === 0) return null;
+          var sorted = arr.slice().sort(function(a,b){ return a - b; });
+          var idx = Math.floor(sorted.length * 0.95);
+          return sorted[Math.min(idx, sorted.length - 1)];
+        }
+        group.p95_cpu = percentile95(group.maxCpuValues);
+        group.p95_ram = percentile95(group.maxRamValues);
+
+        // Projected peak on target class — uses P95 instead of absolute max
+        // so a single outlier run doesn't override hundreds of safe runs
         group.projected_peak_cpu = 0;
         group.projected_peak_ram = 0;
         if (group.suggested_class !== group.resource_class) {
           var currentSpecs = getResourceSpecs(group.resource_class);
           var targetSpecs = getResourceSpecs(group.suggested_class);
           if (currentSpecs && targetSpecs) {
-            // Project observed max onto smaller class
-            if (group.max_cpu_observed !== null && targetSpecs.cpu > 0) {
-              group.projected_peak_cpu = Math.round(group.max_cpu_observed * (currentSpecs.cpu / targetSpecs.cpu));
+            // Project P95 peak onto smaller class
+            if (group.p95_cpu !== null && targetSpecs.cpu > 0) {
+              group.projected_peak_cpu = Math.round(group.p95_cpu * (currentSpecs.cpu / targetSpecs.cpu));
             }
-            if (group.max_ram_observed !== null && targetSpecs.ram > 0) {
-              group.projected_peak_ram = Math.round(group.max_ram_observed * (currentSpecs.ram / targetSpecs.ram));
+            if (group.p95_ram !== null && targetSpecs.ram > 0) {
+              group.projected_peak_ram = Math.round(group.p95_ram * (currentSpecs.ram / targetSpecs.ram));
             }
           }
         }
@@ -2268,7 +2280,7 @@
           verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-red-100 text-red-700">🚫 Spike risk</span>';
         } else if (group.projected_peak_cpu > PROJECTED_PEAK_LIMIT || group.projected_peak_ram > PROJECTED_PEAK_LIMIT) {
           verdictCell = '<span class="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-amber-100 text-amber-700">⚠ Peak too high</span>' +
-            '<br><span class="text-gray-400 text-xs">proj: ' +
+            '<br><span class="text-gray-400 text-xs">P95 proj: ' +
             (group.projected_peak_cpu > 0 ? group.projected_peak_cpu + '% CPU' : '') +
             (group.projected_peak_ram > 0 ? ' / ' + group.projected_peak_ram + '% RAM' : '') + '</span>';
         } else {
