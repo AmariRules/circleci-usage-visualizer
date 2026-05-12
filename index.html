@@ -1882,19 +1882,16 @@
         return currentClass;
       }
       
-      // Very high utilization (90%+)
-      const isHighUtil = cpuUtil >= 90 || ramUtil >= 90;
-      
-      // For Docker and machine executors
+      // For Docker and machine executors — always step up by exactly 1 size
       if (currentClass.includes('small')) {
         return 'medium';
       } else if (currentClass.includes('medium') && !currentClass.includes('medium+')) {
-        return isHighUtil ? 'large' : currentClass + '+';
+        return 'medium+';
       } else if (currentClass.includes('medium+')) {
         return 'large';
-      } else if (currentClass.includes('large')) {
-        return isHighUtil ? '2xlarge' : 'xlarge';
-      } else if (currentClass.includes('xlarge')) {
+      } else if (currentClass.includes('large') && !currentClass.includes('xlarge') && !currentClass.includes('2xlarge')) {
+        return 'xlarge';
+      } else if (currentClass.includes('xlarge') && !currentClass.includes('2xlarge')) {
         return '2xlarge';
       } else if (currentClass.includes('2xlarge') && !currentClass.includes('2xlarge+')) {
         return '2xlarge+';
@@ -2304,8 +2301,6 @@
         return currentClass;
       }
 
-      const isVeryUnderutilized = cpuUtil <= 30 && ramUtil <= 30;
-
       // ── macOS classes ─────────────────────────────────────────────────
       // Apple Silicon: m4pro.medium (floor), m4pro.large, m4pro.xlarge
       // Legacy Intel:  macos.m1.medium.gen1, macos.x86.medium.gen1, etc.
@@ -2313,11 +2308,11 @@
       const isMac = currentClass.startsWith('m4pro.') || currentClass.startsWith('m2pro.') ||
                     currentClass.startsWith('m1.') || currentClass.startsWith('macos.');
       if (isMac) {
-        // Identify the size suffix
+        // Always step down by exactly 1 size — never skip a tier.
         if (currentClass.includes('2xlarge')) {
-          return currentClass.replace('2xlarge', isVeryUnderutilized ? 'large' : 'xlarge');
+          return currentClass.replace('2xlarge', 'xlarge');
         } else if (currentClass.includes('xlarge')) {
-          return currentClass.replace('xlarge', isVeryUnderutilized ? 'medium' : 'large');
+          return currentClass.replace('xlarge', 'large');
         } else if (currentClass.includes('large') && !currentClass.includes('xlarge')) {
           return currentClass.replace('large', 'medium');
         }
@@ -2326,12 +2321,14 @@
       }
 
       // ── Docker / Linux VM / Windows / GPU classes ─────────────────────
+      // Always step down by exactly 1 size — never skip a tier.
+      // Jumping 2 sizes is too aggressive and risks breaking builds.
       if (currentClass.includes('2xlarge+')) {
-        return isVeryUnderutilized ? 'xlarge' : '2xlarge';
+        return '2xlarge';
       } else if (currentClass.includes('2xlarge')) {
-        return isVeryUnderutilized ? 'large' : 'xlarge';
+        return 'xlarge';
       } else if (currentClass.includes('xlarge')) {
-        return isVeryUnderutilized ? 'medium' : 'large';
+        return 'large';
       } else if (currentClass.includes('large')) {
         return 'medium';
       } else if (currentClass.includes('medium+')) {
