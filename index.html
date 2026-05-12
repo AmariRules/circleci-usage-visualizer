@@ -2052,12 +2052,20 @@
     var underutilCurrentFilter = 'all';
 
     function classifyUnderutilGroup(group) {
-      // If spike rate >= 20%, it's risky — low averages are misleading
-      if (group.spike_pct >= SPIKE_RUN_PCT) return 'risky';
-      // If projected peak on target class exceeds 85%, target is too small
-      if (group.projected_peak_cpu > PROJECTED_PEAK_LIMIT || group.projected_peak_ram > PROJECTED_PEAK_LIMIT) return 'risky';
       // If we can't determine a smaller class, nothing to optimize
       if (group.suggested_class === group.resource_class) return 'risky';
+
+      // If spike rate >= 20%, it's risky — low averages are misleading
+      if (group.spike_pct !== null && group.spike_pct >= SPIKE_RUN_PCT) return 'risky';
+
+      // If spike rate is low (< 20%), trust it — the job rarely spikes,
+      // so even if the absolute/P95 peak projects high on the smaller class,
+      // that peak only happens in a small fraction of runs. Safe to downsize.
+      if (group.spike_pct !== null && group.spike_pct < SPIKE_RUN_PCT) return 'true';
+
+      // No spike data available — fall back to projected peak as safety check
+      if (group.projected_peak_cpu > PROJECTED_PEAK_LIMIT || group.projected_peak_ram > PROJECTED_PEAK_LIMIT) return 'risky';
+
       return 'true';
     }
 
