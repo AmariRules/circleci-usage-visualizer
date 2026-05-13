@@ -660,6 +660,7 @@
             workflow: job.WORKFLOW_NAME || '',
             resource_class: rc,
             executor: executor || 'machine',
+            executor_confirmed: !!executor,
             total_credits: 0, total_runs: 0, total_seconds: 0,
             cpu_vals: [], ram_vals: [],
           };
@@ -753,6 +754,7 @@
           speed_proj:        speedProj,
           migration_type:    'linuxvm-gen2',
           pct_change:        mapping.pctChange,
+          executor_confirmed: vg.executor_confirmed,
         });
       });
 
@@ -815,6 +817,7 @@
           migration_type:    'gpu-gen2',
           gpu_model:         info.model,
           gpu_vram:          info.vram,
+          executor_confirmed: true,
         });
       });
 
@@ -927,6 +930,7 @@
           speed_proj:        speedProj,
           migration_type:    'docker-gen2',
           pct_change:        mapping.pctChange,
+          executor_confirmed: true,
         });
 
         // Also track Docker potential summary for the card
@@ -1420,13 +1424,28 @@
         var configPath = '<span class="text-gray-400">' + escapeHtml(o.project) + '</span>' +
           (workflow ? ' <span class="text-gray-300">→</span> <span class="text-gray-500">' + escapeHtml(workflow) + '</span>' : '') +
           ' <span class="text-gray-300">→</span> <span class="text-gray-700 font-medium">' + escapeHtml(o.job_name) + '</span>';
+
+        // Executor type badge
+        var execBadge = '';
+        if (o.migration_type === 'docker-gen2') {
+          execBadge = '<span class="inline-block text-xs px-1.5 py-0.5 rounded mt-1 bg-blue-100 text-blue-700 font-medium">docker</span>';
+        } else if (o.migration_type === 'gpu-gen2') {
+          execBadge = '<span class="inline-block text-xs px-1.5 py-0.5 rounded mt-1 bg-purple-100 text-purple-700 font-medium">gpu</span>';
+        } else if (o.executor_confirmed === false) {
+          execBadge = '<span class="inline-block text-xs px-1.5 py-0.5 rounded mt-1 bg-yellow-100 text-yellow-700 font-medium" ' +
+            'title="Executor field was empty in usage data — assumed machine. Verify in your .circleci/config.yml">machine?</span>';
+        } else {
+          execBadge = '<span class="inline-block text-xs px-1.5 py-0.5 rounded mt-1 bg-gray-100 text-gray-500 font-medium">' + escapeHtml(o.executor) + '</span>';
+        }
+
         var row = document.createElement('tr');
         row.className = 'hover:bg-gray-50 text-sm align-top';
         row.innerHTML =
           '<td class="px-3 py-3 text-xs leading-relaxed" style="max-width:320px">' + configPath + '</td>' +
           '<td class="px-3 py-3"><span class="font-mono text-xs bg-gray-100 px-2 py-0.5 rounded">' +
             o.resource_class + '</span>' +
-            '<span class="text-xs text-gray-400 ml-1">' + o.gen1_cpm + 'c/min</span></td>' +
+            '<span class="text-xs text-gray-400 ml-1">' + o.gen1_cpm + 'c/min</span>' +
+            '<br>' + execBadge + '</td>' +
           '<td class="px-3 py-3 text-right text-gray-600">' + estCpu + '</td>' +
           '<td class="px-3 py-3 text-right text-gray-600">' + estRam + '</td>' +
           '<td class="px-3 py-3 text-right text-gray-700 font-medium">' + o.total_credits.toLocaleString() + '</td>' +
