@@ -93,22 +93,25 @@
                 <h3 class="font-semibold text-gray-700 text-sm">LinuxVM Gen2 (x86)</h3>
                 <a href="https://circleci.com/docs/reference/configuration-reference/#linuxvm-gen2-execution-environment" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">Docs →</a>
               </div>
-              <p class="text-xs text-gray-400 mb-3">Machine &amp; Remote Docker only. Faster CPUs, improved single-thread perf. xlarge+ sizes are <strong class="text-green-600">cheaper</strong> on Gen2.</p>
+              <p class="text-xs text-gray-400 mb-3">Machine &amp; Remote Docker only. Up to 180% faster for multi-threaded workloads. med/lg are +80% cr/min; <strong class="text-green-600">xlarge+ sizes are cheaper</strong> on Gen2.</p>
               <div class="overflow-x-auto">
                 <table class="text-xs w-full">
                   <thead>
                     <tr class="border-b border-gray-200">
                       <th class="px-2 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">CPU</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">RAM</th>
                       <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Gen1</th>
                       <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Gen2</th>
                       <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
                     </tr>
                   </thead>
                   <tbody class="divide-y divide-gray-100">
-                    <tr><td class="px-2 py-1.5 font-mono">medium</td><td class="px-2 py-1.5 text-right">10</td><td class="px-2 py-1.5 text-right">18</td><td class="px-2 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
-                    <tr><td class="px-2 py-1.5 font-mono">large</td><td class="px-2 py-1.5 text-right">20</td><td class="px-2 py-1.5 text-right">36</td><td class="px-2 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
-                    <tr><td class="px-2 py-1.5 font-mono">xlarge</td><td class="px-2 py-1.5 text-right">40</td><td class="px-2 py-1.5 text-right">29</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-28%</td></tr>
-                    <tr><td class="px-2 py-1.5 font-mono">2xlarge</td><td class="px-2 py-1.5 text-right">80</td><td class="px-2 py-1.5 text-right">77</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-4%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">medium.gen2</td><td class="px-2 py-1.5 text-right">2</td><td class="px-2 py-1.5 text-right">8 GiB</td><td class="px-2 py-1.5 text-right">10</td><td class="px-2 py-1.5 text-right">18</td><td class="px-2 py-1.5 text-right text-red-500 font-semibold">+80%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">large.gen2</td><td class="px-2 py-1.5 text-right">4</td><td class="px-2 py-1.5 text-right">16 GiB</td><td class="px-2 py-1.5 text-right">20</td><td class="px-2 py-1.5 text-right">36</td><td class="px-2 py-1.5 text-right text-red-500 font-semibold">+80%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">xlarge.gen2</td><td class="px-2 py-1.5 text-right">8</td><td class="px-2 py-1.5 text-right">32 GiB</td><td class="px-2 py-1.5 text-right">100</td><td class="px-2 py-1.5 text-right">72</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-28%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">2xlarge.gen2</td><td class="px-2 py-1.5 text-right">16</td><td class="px-2 py-1.5 text-right">64 GiB</td><td class="px-2 py-1.5 text-right">200</td><td class="px-2 py-1.5 text-right">144</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-28%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">2xlarge+.gen2</td><td class="px-2 py-1.5 text-right">32</td><td class="px-2 py-1.5 text-right">128 GiB</td><td class="px-2 py-1.5 text-right">300</td><td class="px-2 py-1.5 text-right">288</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-4%</td></tr>
                   </tbody>
                 </table>
               </div>
@@ -162,7 +165,7 @@
           <div class="px-4 py-4">
             <p class="text-xs font-semibold text-green-600 uppercase tracking-wide mb-1">Cost Impact Breakdown</p>
             <p id="gen2-total-savings" class="text-lg font-bold text-green-600">—</p>
-            <p class="text-xs text-gray-400 mt-1">LinuxVM: xlarge/2xl save · Docker: +20% but 1.4x faster</p>
+            <p class="text-xs text-gray-400 mt-1">LinuxVM: med/lg +80%, xlarge+ cheaper · Docker: all +20% · value from speed gains</p>
           </div>
           <div class="px-4 py-4">
             <p class="text-xs font-semibold text-indigo-500 uppercase tracking-wide mb-1">Total Time Saved on Gen2</p>
@@ -247,9 +250,8 @@
         </div>
         <div class="bg-amber-50 border-t border-amber-200 px-6 py-4 rounded-b-xl">
           <p class="text-xs text-amber-800">
-            <strong>⚠ Before migrating:</strong> LinuxVM Gen2 uses Machine and Remote Docker executors.
+            <strong>⚠ Before migrating:</strong> LinuxVM Gen2 uses Machine and Remote Docker executors — <strong>med/lg are +80% cr/min; xlarge is −28%, 2xlarge is −28%, 2xlarge+ is −4%</strong>. Up to 180% faster for multi-threaded workloads. 2xlarge+.gen2 (32 CPU, 128 GiB) is a new size with no Gen1 equivalent.
             Docker Gen2 (x86) is now GA for Docker executor (paid plans, May 2026). Gen2 Docker is 1.4x faster at +20% cr/min.
-            LinuxVM Gen2: <strong>medium and large are +80% cr/min</strong> but have better CPU IPC; xlarge and 2xlarge are cheaper (-28% and -4%).
             Docker Gen2 not supported on: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, or CircleCI Server.
             Test in a feature branch first. Verify against your plan pricing.
           </p>
@@ -547,23 +549,29 @@
     const ARM_CLASSES_ORDERED = ['arm.medium','arm.large','arm.xlarge','arm.2xlarge'];
 
     // ── LinuxVM Gen2 (x86) Resource Classes ──────────────────────────────────
+    // LinuxVM Gen1 — verified against circleci.com/pricing/price-list/ (May 6 2026)
+    // NOTE: LinuxVM xlarge/2xlarge/2xlarge+ are MUCH more expensive than Docker equivalents!
     const LINUXVM_GEN1 = {
-      'medium':   { cpm: 10, cpu: 2,  ram: 7.5 },
-      'large':    { cpm: 20, cpu: 4,  ram: 15  },
-      'xlarge':   { cpm: 40, cpu: 8,  ram: 32  },
-      '2xlarge':  { cpm: 80, cpu: 16, ram: 64  },
+      'medium':    { cpm: 10,  cpu: 2,  ram: 7.5 },
+      'large':     { cpm: 20,  cpu: 4,  ram: 15  },
+      'xlarge':    { cpm: 100, cpu: 8,  ram: 32  },  // was 40 (Docker price!) — corrected
+      '2xlarge':   { cpm: 200, cpu: 16, ram: 64  },  // was 80 (Docker price!) — corrected
+      '2xlarge+':  { cpm: 300, cpu: 32, ram: 64  },  // previously missing
     };
+    // LinuxVM Gen2 — verified against GA changelog (Mar 2 2026) + price list
     const LINUXVM_GEN2 = {
-      'medium.gen2':   { cpm: 18, cpu: 2,  ram: 8   },
-      'large.gen2':    { cpm: 36, cpu: 4,  ram: 16  },
-      'xlarge.gen2':   { cpm: 29, cpu: 8,  ram: 32  },
-      '2xlarge.gen2':  { cpm: 77, cpu: 16, ram: 64  },
+      'medium.gen2':    { cpm: 18,  cpu: 2,  ram: 8   },
+      'large.gen2':     { cpm: 36,  cpu: 4,  ram: 16  },
+      'xlarge.gen2':    { cpm: 72,  cpu: 8,  ram: 32  },
+      '2xlarge.gen2':   { cpm: 144, cpu: 16, ram: 64  },
+      '2xlarge+.gen2':  { cpm: 288, cpu: 32, ram: 128 },
     };
     const GEN1_TO_LINUXVM_GEN2 = {
-      'medium':  { gen2: 'medium.gen2',  pctChange: +80 },
-      'large':   { gen2: 'large.gen2',   pctChange: +80 },
-      'xlarge':  { gen2: 'xlarge.gen2',  pctChange: -28 },
-      '2xlarge': { gen2: '2xlarge.gen2', pctChange: -4  },
+      'medium':   { gen2: 'medium.gen2',   pctChange: +80  },  // 10 → 18
+      'large':    { gen2: 'large.gen2',    pctChange: +80  },  // 20 → 36
+      'xlarge':   { gen2: 'xlarge.gen2',   pctChange: -28  },  // 100 → 72 — CHEAPER
+      '2xlarge':  { gen2: '2xlarge.gen2',  pctChange: -28  },  // 200 → 144 — CHEAPER
+      '2xlarge+': { gen2: '2xlarge+.gen2', pctChange: -4   },  // 300 → 288 — slightly cheaper
     };
     const GPU_GEN2_INFO = {
       'gpu.nvidia.small': { gen2: 'gpu.nvidia.small.gen2', model: 'NVIDIA A10G', vram: '24 GiB' },
@@ -967,13 +975,11 @@
 
     // Classify each opportunity as 'recommended' or 'review'
     function classifyGen2Opp(o) {
-      // Recommended: cheaper rate, net-positive speed offset, GPU upgrade, or Docker Gen2 (1.4x faster)
+      // Recommended: GPU upgrade, net-positive speed offset (speed savings > cost increase)
       if (o.migration_type === 'gpu-gen2') return 'recommended';
-      if (o.migration_type === 'docker-gen2' && o.speed_proj && o.speed_proj.is_net_positive) return 'recommended';
-      if (o.migration_type === 'docker-gen2') return 'review'; // +20% cost, speed may not fully offset
-      if (o.pct_change <= 0) return 'recommended';                       // xlarge/2xlarge — cheaper
       if (o.speed_proj && o.speed_proj.is_net_positive) return 'recommended'; // speed offsets cost
-      return 'review'; // costs more and speed doesn't fully offset
+      if (o.pct_change <= 0) return 'recommended';                            // cheaper rate (if any)
+      return 'review'; // costs more and speed may not fully offset
     }
 
     function applyGen2Filter(filter) {
