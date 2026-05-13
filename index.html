@@ -84,64 +84,72 @@
           </div>
         </div>
 
-        <!-- LinuxVM Gen2 Pricing Comparison -->
+        <!-- Gen2 Pricing Comparison — Side by Side -->
         <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
-            <h3 class="font-semibold text-gray-700 text-sm">LinuxVM Gen2 (x86) — Credit Rate Comparison</h3>
-            <a href="https://circleci.com/docs/reference/configuration-reference/#linuxvm-gen2-execution-environment" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">View Gen2 Docs →</a>
-          </div>
-          <p class="text-xs text-gray-400 mb-3">Machine &amp; Remote Docker only. Gen2 VMs have faster CPUs with improved single-thread performance. xlarge+ sizes are <strong class="text-green-600">cheaper</strong> on Gen2.</p>
+          <div class="flex flex-col lg:flex-row gap-6">
+            <!-- LinuxVM Gen2 -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                <h3 class="font-semibold text-gray-700 text-sm">LinuxVM Gen2 (x86)</h3>
+                <a href="https://circleci.com/docs/reference/configuration-reference/#linuxvm-gen2-execution-environment" target="_blank" rel="noopener" class="text-xs text-blue-600 hover:underline">Docs →</a>
+              </div>
+              <p class="text-xs text-gray-400 mb-3">Machine &amp; Remote Docker only. Faster CPUs, improved single-thread perf. xlarge+ sizes are <strong class="text-green-600">cheaper</strong> on Gen2.</p>
+              <div class="overflow-x-auto">
+                <table class="text-xs w-full">
+                  <thead>
+                    <tr class="border-b border-gray-200">
+                      <th class="px-2 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Gen1</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Gen2</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    <tr><td class="px-2 py-1.5 font-mono">medium</td><td class="px-2 py-1.5 text-right">10</td><td class="px-2 py-1.5 text-right">18</td><td class="px-2 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">large</td><td class="px-2 py-1.5 text-right">20</td><td class="px-2 py-1.5 text-right">36</td><td class="px-2 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">xlarge</td><td class="px-2 py-1.5 text-right">40</td><td class="px-2 py-1.5 text-right">29</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-28%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">2xlarge</td><td class="px-2 py-1.5 text-right">80</td><td class="px-2 py-1.5 text-right">77</td><td class="px-2 py-1.5 text-right text-green-600 font-semibold">-4%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="text-xs text-gray-400 mt-2">GPU Gen2: <code class="bg-gray-100 px-1 rounded">gpu.nvidia.small.gen2</code> — NVIDIA A10G (24 GiB) replaces Tesla P4 (16 GiB)</p>
+            </div>
 
-          <div class="overflow-x-auto">
-            <table class="text-xs w-full max-w-lg">
-              <thead>
-                <tr class="border-b border-gray-200">
-                  <th class="px-3 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen1 (cr/min)</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen2 (cr/min)</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr><td class="px-3 py-1.5 font-mono">medium</td><td class="px-3 py-1.5 text-right">10</td><td class="px-3 py-1.5 text-right">18</td><td class="px-3 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">large</td><td class="px-3 py-1.5 text-right">20</td><td class="px-3 py-1.5 text-right">36</td><td class="px-3 py-1.5 text-right text-red-600 font-semibold">+80%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">xlarge</td><td class="px-3 py-1.5 text-right">40</td><td class="px-3 py-1.5 text-right">29</td><td class="px-3 py-1.5 text-right text-green-600 font-semibold">-28%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">2xlarge</td><td class="px-3 py-1.5 text-right">80</td><td class="px-3 py-1.5 text-right">77</td><td class="px-3 py-1.5 text-right text-green-600 font-semibold">-4%</td></tr>
-              </tbody>
-            </table>
-          </div>
-          <p class="text-xs text-gray-400 mt-2">GPU Gen2: <code class="bg-gray-100 px-1 rounded">gpu.nvidia.small.gen2</code> — NVIDIA A10G (24 GiB) replaces Tesla P4 (16 GiB)</p>
-        </div>
+            <!-- Divider -->
+            <div class="hidden lg:block w-px bg-gray-200"></div>
 
-        <!-- Docker Gen2 (x86) Pricing Comparison — GA May 4, 2026 -->
-        <div class="px-6 py-4 border-b border-gray-200 bg-gray-50">
-          <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
-            <h3 class="font-semibold text-gray-700 text-sm">Docker Gen2 (x86) — Credit Rate Comparison</h3>
-            <span class="text-xs px-2 py-0.5 rounded font-semibold" style="background:#00b140;color:#fff">NEW — GA May 2026</span>
-          </div>
-          <p class="text-xs text-gray-400 mb-3">Docker executor only (paid plans). Gen2 Docker is benchmarked at <strong class="text-green-600">1.4x faster</strong> than Gen1. All sizes +20% cr/min but speed gains offset the higher rate. Not supported: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, CircleCI Server.</p>
-          <div class="overflow-x-auto">
-            <table class="text-xs w-full max-w-2xl">
-              <thead>
-                <tr class="border-b border-gray-200">
-                  <th class="px-3 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">CPU</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">RAM</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen1 (cr/min)</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Gen2 (cr/min)</th>
-                  <th class="px-3 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-100">
-                <tr><td class="px-3 py-1.5 font-mono">small.gen2</td><td class="px-3 py-1.5 text-right">1</td><td class="px-3 py-1.5 text-right">2 GB</td><td class="px-3 py-1.5 text-right">5</td><td class="px-3 py-1.5 text-right">6</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">medium.gen2</td><td class="px-3 py-1.5 text-right">2</td><td class="px-3 py-1.5 text-right">4 GB</td><td class="px-3 py-1.5 text-right">10</td><td class="px-3 py-1.5 text-right">12</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">medium+.gen2</td><td class="px-3 py-1.5 text-right">3</td><td class="px-3 py-1.5 text-right">6 GB</td><td class="px-3 py-1.5 text-right">15</td><td class="px-3 py-1.5 text-right">18</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">large.gen2</td><td class="px-3 py-1.5 text-right">4</td><td class="px-3 py-1.5 text-right">8 GB</td><td class="px-3 py-1.5 text-right">20</td><td class="px-3 py-1.5 text-right">24</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">xlarge.gen2</td><td class="px-3 py-1.5 text-right">8</td><td class="px-3 py-1.5 text-right">16 GB</td><td class="px-3 py-1.5 text-right">40</td><td class="px-3 py-1.5 text-right">48</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">2xlarge.gen2</td><td class="px-3 py-1.5 text-right">16</td><td class="px-3 py-1.5 text-right">32 GB</td><td class="px-3 py-1.5 text-right">80</td><td class="px-3 py-1.5 text-right">96</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-                <tr><td class="px-3 py-1.5 font-mono">2xlarge+.gen2</td><td class="px-3 py-1.5 text-right">20</td><td class="px-3 py-1.5 text-right">40 GB</td><td class="px-3 py-1.5 text-right">100</td><td class="px-3 py-1.5 text-right">120</td><td class="px-3 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
-              </tbody>
-            </table>
+            <!-- Docker Gen2 -->
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center justify-between flex-wrap gap-3 mb-3">
+                <h3 class="font-semibold text-gray-700 text-sm">Docker Gen2 (x86)</h3>
+                <span class="text-xs px-2 py-0.5 rounded font-semibold" style="background:#00b140;color:#fff">NEW — GA May 2026</span>
+              </div>
+              <p class="text-xs text-gray-400 mb-3">Docker executor only (paid plans). Benchmarked <strong class="text-green-600">1.4x faster</strong> than Gen1. All sizes +20% cr/min but speed gains offset the higher rate.</p>
+              <div class="overflow-x-auto">
+                <table class="text-xs w-full">
+                  <thead>
+                    <tr class="border-b border-gray-200">
+                      <th class="px-2 py-2 text-left font-semibold text-gray-500 uppercase">Class</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">CPU</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">RAM</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Gen1</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Gen2</th>
+                      <th class="px-2 py-2 text-right font-semibold text-gray-500 uppercase">Change</th>
+                    </tr>
+                  </thead>
+                  <tbody class="divide-y divide-gray-100">
+                    <tr><td class="px-2 py-1.5 font-mono">small.gen2</td><td class="px-2 py-1.5 text-right">1</td><td class="px-2 py-1.5 text-right">2 GB</td><td class="px-2 py-1.5 text-right">5</td><td class="px-2 py-1.5 text-right">6</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">medium.gen2</td><td class="px-2 py-1.5 text-right">2</td><td class="px-2 py-1.5 text-right">4 GB</td><td class="px-2 py-1.5 text-right">10</td><td class="px-2 py-1.5 text-right">12</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">medium+.gen2</td><td class="px-2 py-1.5 text-right">3</td><td class="px-2 py-1.5 text-right">6 GB</td><td class="px-2 py-1.5 text-right">15</td><td class="px-2 py-1.5 text-right">18</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">large.gen2</td><td class="px-2 py-1.5 text-right">4</td><td class="px-2 py-1.5 text-right">8 GB</td><td class="px-2 py-1.5 text-right">20</td><td class="px-2 py-1.5 text-right">24</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">xlarge.gen2</td><td class="px-2 py-1.5 text-right">8</td><td class="px-2 py-1.5 text-right">16 GB</td><td class="px-2 py-1.5 text-right">40</td><td class="px-2 py-1.5 text-right">48</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">2xlarge.gen2</td><td class="px-2 py-1.5 text-right">16</td><td class="px-2 py-1.5 text-right">32 GB</td><td class="px-2 py-1.5 text-right">80</td><td class="px-2 py-1.5 text-right">96</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                    <tr><td class="px-2 py-1.5 font-mono">2xlarge+.gen2</td><td class="px-2 py-1.5 text-right">20</td><td class="px-2 py-1.5 text-right">40 GB</td><td class="px-2 py-1.5 text-right">100</td><td class="px-2 py-1.5 text-right">120</td><td class="px-2 py-1.5 text-right text-amber-600 font-semibold">+20%</td></tr>
+                  </tbody>
+                </table>
+              </div>
+              <p class="text-xs text-gray-400 mt-2">Not supported: free plans, Arm Docker, Remote Docker small.gen2, IP Ranges, CircleCI Server.</p>
+            </div>
           </div>
         </div>
 
