@@ -628,10 +628,12 @@
     // Returns { opportunities[], already_gen2_count, already_gen2_credits }
     // SCOPE: LinuxVM Gen2 (x86 Machine/Remote Docker) + GPU Gen2 ONLY
     // LinuxVM Gen2 pricing vs Gen1:
-    //   medium  10 → 18 cr/min (+80%)   — more expensive, faster CPU
-    //   large   20 → 36 cr/min (+80%)   — more expensive, faster CPU
-    //   xlarge  40 → 29 cr/min (-28%)   — CHEAPER
-    //   2xlarge 80 → 77 cr/min (-4%)    — CHEAPER
+    //   medium  10 → 18 cr/min (+80%)    — more expensive, faster CPU
+    //   large   20 → 36 cr/min (+80%)    — more expensive, faster CPU
+    //   xlarge  100 → 72 cr/min (-28%)   — CHEAPER on Gen2
+    //   2xlarge 200 → 144 cr/min (-28%)  — CHEAPER on Gen2
+    //   2xlarge+ 300 → 288 cr/min (-4%)  — slightly cheaper
+    // NOTE: LinuxVM Gen2 starts at medium. No small.gen2 for Machine/Remote Docker.
     function analyzeGen2Opportunities(data) {
       let alreadyGen2Count = 0;
       let alreadyGen2Credits = 0;
